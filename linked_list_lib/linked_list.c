@@ -54,7 +54,6 @@ inline void insert(Node** head, int data) {
     if (node_pool == NULL) {
         allocate_pool_chunk(); // Directly call allocate_pool_chunk if pool is empty
     }
-    printf("insert called\n");
     Node* new_node = node_pool;
     node_pool = node_pool->next_free;
     new_node->data = data;

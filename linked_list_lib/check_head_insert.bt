@@ -1,0 +1,35 @@
+uprobe:"./linked_list_app":insert
+{
+  @head_ptr[tid] = arg0;   // Store the (Node**) parameter
+  @ins_data[tid] = arg1;   // Store the integer to be inserted
+}
+
+uretprobe:"./linked_list_app":insert
+{
+  // Retrieve and remove saved values from maps
+  $head_addr = @head_ptr[tid];
+  $data_val  = @ins_data[tid];
+  delete(@head_ptr[tid]);
+  delete(@ins_data[tid]);
+
+  // 1) Read the pointer to the new head
+  //    Use extra parentheses around the cast to avoid parse errors:
+  $new_node_ptr = *((unsigned long*)($head_addr));
+
+  if ($new_node_ptr == 0) {
+    printf("ERROR: after insert, head is NULL. Stopping.\n");
+    exit();
+  } else {
+    // 2) Read the newly inserted node's data (assuming 'int data;' is the first field)
+    $node_data = *((int*)($new_node_ptr));
+
+    if ($node_data != $data_val) {
+      printf("ERROR: mismatch in newly inserted node->data. Expected %d, got %d. Stopping.\n",
+             $data_val, $node_data);
+      exit();
+    } else {
+      printf("Insert check OK: new head->data = %d\n", $node_data);
+    }
+  }
+}
+
