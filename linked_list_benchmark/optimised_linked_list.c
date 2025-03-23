@@ -2,20 +2,20 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include "optimised_linked_list.h"
-#include <stdlib.h> // for posix_memalign
+#include <emmintrin.h>  // For non-temporal store intrinsic
 
 #define NODE_CHUNK_SIZE 100000
 
+// Global node pool and chunk list.
 OptimisedNode* node_pool = NULL;
 OptimisedChunk* pool_chunks = NULL;
 
-// Define branch prediction macros
+// Define branch prediction hints.
 #define likely(x)   __builtin_expect((x), 1)
 #define unlikely(x) __builtin_expect((x), 0)
 
-static inline void insert_exit_marker() {
-    /* Empty marker function */
-}
+// Empty marker function (for potential future use)
+static inline void insert_exit_marker() { }
 
 void optimised_allocate_pool_chunk() {
     OptimisedNode* new_chunk = NULL;
@@ -68,10 +68,12 @@ void optimised_insert(OptimisedNode** head, int data) {
     insert_exit_marker();
 }
 
+// In the deletion function, use a non-temporal store when updating *head.
 void optimised_delete(OptimisedNode** head, int data) {
     if (*head != NULL && (*head)->data == data) {
         OptimisedNode* temp = *head;
-        *head = (*head)->next;
+        // Non-temporal store: bypass the cache when updating the head pointer.
+        __builtin_ia32_movnti((volatile long long*)head, (long long)(*head)->next);
         optimised_return_node(temp);
         return;
     }
@@ -90,6 +92,7 @@ void optimised_delete(OptimisedNode** head, int data) {
     }
 }
 
+// Display function remains unchanged.
 void optimised_show(OptimisedNode* head) {
     OptimisedNode* current = head;
     while (current != NULL) {
@@ -99,16 +102,28 @@ void optimised_show(OptimisedNode* head) {
     printf("NULL\n");
 }
 
+// Aggressively unrolled search function with multi-level prefetching.
 OptimisedNode* optimised_search(OptimisedNode* head, int data) {
     OptimisedNode* current = head;
-    while (likely(current != NULL)) {
-        // Prefetch the next node if it exists to hide memory latency
-        if (current->next != NULL) {
+    // Process two nodes per iteration.
+    while (current && current->next) {
+        // Prefetch the next two nodes to reduce latency.
+        if (current->next) {
             __builtin_prefetch(current->next, 0, 3);
         }
-        if (current->data == data)
+        if (current->next->next) {
+            __builtin_prefetch(current->next->next, 0, 3);
+        }
+        if (likely(current->data == data)) {
             return current;
-        current = current->next;
+        }
+        if (likely(current->next->data == data)) {
+            return current->next;
+        }
+        current = current->next->next;
+    }
+    if (current && current->data == data) {
+        return current;
     }
     return NULL;
 }

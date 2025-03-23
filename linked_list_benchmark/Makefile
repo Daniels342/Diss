@@ -1,5 +1,14 @@
+# Makefile for Linked List Benchmark
+
+# Use gcc with aggressive optimisation and architecture-specific tuning.
 CC = gcc
-CFLAGS = -O3 -Wall -g
+CFLAGS = -O3 -march=native -Wall -g
+
+# Uncomment and use these flags for PGO if desired:
+# For the initial run to generate profiling data:
+# CFLAGS_PGO_GEN = -O3 -march=native -Wall -g -fprofile-generate
+# For the final build using the profiling data:
+# CFLAGS_PGO_USE = -O3 -march=native -Wall -g -fprofile-use
 
 all: baseline optimised
 
