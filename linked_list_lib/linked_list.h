@@ -16,8 +16,6 @@ void insert(Node** head, int data);
 void delete(Node** head, int data);
 void show(Node* head);
 Node* search(Node* head, int data);
-void init_node_pool();
-Node* get_node();
 void return_node(Node* node);
 void free_all();
 void allocate_pool_chunk();

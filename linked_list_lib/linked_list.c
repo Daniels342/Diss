@@ -3,12 +3,13 @@
 #include <stdbool.h>
 #include "linked_list.h"
 #define CACHE_LINE_SIZE 64
-
 #define NODE_CHUNK_SIZE 100000
 
 Node* node_pool = NULL;
 Chunk* pool_chunks = NULL;
+
 void insert_exit_marker() {}
+
 void allocate_pool_chunk() {
     Node* new_chunk = NULL;
     if (posix_memalign((void**)&new_chunk, CACHE_LINE_SIZE, NODE_CHUNK_SIZE * sizeof(Node)) != 0) {
@@ -31,10 +32,6 @@ void allocate_pool_chunk() {
     }
 }
 
-void init_node_pool() {
-    allocate_pool_chunk();
-}
-
 inline void return_node(Node* node) {
     node->next_free = node_pool;
     node_pool = node;
@@ -52,7 +49,7 @@ void free_all() {
 
 inline void insert(Node** head, int data) {
     if (node_pool == NULL) {
-        allocate_pool_chunk(); // Directly call allocate_pool_chunk if pool is empty
+        allocate_pool_chunk();
     }
     Node* new_node = node_pool;
     node_pool = node_pool->next_free;
@@ -63,7 +60,6 @@ inline void insert(Node** head, int data) {
 }
 
 void delete(Node** head, int data) {
-    // Handle the special case where the data is in the head node
     if (*head != NULL && (*head)->data == data) {
         Node* temp = *head;
         *head = (*head)->next;
@@ -71,11 +67,9 @@ void delete(Node** head, int data) {
         return;
     }
 
-    // Initialize pointers for traversal
     Node* prev = *head;
     Node* temp = (*head != NULL) ? (*head)->next : NULL;
 
-    // Loop through the list to find the node with the target data
     while (temp != NULL) {
         if (temp->data == data) {
             prev->next = temp->next;
@@ -106,4 +100,3 @@ Node* search(Node* head, int data) {
     }
     return NULL;
 }
-
