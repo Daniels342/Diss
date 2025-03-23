@@ -3,11 +3,15 @@
 #include <stdbool.h>
 #include "optimised_linked_list.h"
 #include <stdlib.h> // for posix_memalign
-#define CACHE_LINE_SIZE 64
+
 #define NODE_CHUNK_SIZE 100000
 
 OptimisedNode* node_pool = NULL;
 OptimisedChunk* pool_chunks = NULL;
+
+// Define branch prediction macros
+#define likely(x)   __builtin_expect((x), 1)
+#define unlikely(x) __builtin_expect((x), 0)
 
 static inline void insert_exit_marker() {
     /* Empty marker function */
@@ -97,7 +101,11 @@ void optimised_show(OptimisedNode* head) {
 
 OptimisedNode* optimised_search(OptimisedNode* head, int data) {
     OptimisedNode* current = head;
-    while (current != NULL) {
+    while (likely(current != NULL)) {
+        // Prefetch the next node if it exists to hide memory latency
+        if (current->next != NULL) {
+            __builtin_prefetch(current->next, 0, 3);
+        }
         if (current->data == data)
             return current;
         current = current->next;

@@ -1,11 +1,23 @@
 #ifndef OPTIMISED_LINKED_LIST_H
 #define OPTIMISED_LINKED_LIST_H
 
+#include <stdalign.h>  // for C11 alignas, if available
+
+#define CACHE_LINE_SIZE 64
+
+// Option 1 (C11):
 typedef struct OptimisedNode {
     int data;
     struct OptimisedNode* next;
     struct OptimisedNode* next_free;
-} OptimisedNode;
+} OptimisedNode alignas(CACHE_LINE_SIZE);
+
+// Option 2 (GNU style):
+// typedef struct OptimisedNode {
+//     int data;
+//     struct OptimisedNode* next;
+//     struct OptimisedNode* next_free;
+// } OptimisedNode __attribute__((aligned(CACHE_LINE_SIZE)));
 
 typedef struct OptimisedChunk {
     OptimisedNode* chunk;
