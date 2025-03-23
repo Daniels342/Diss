@@ -68,12 +68,11 @@ void optimised_insert(OptimisedNode** head, int data) {
     insert_exit_marker();
 }
 
-// In the deletion function, use a non-temporal store when updating *head.
 void optimised_delete(OptimisedNode** head, int data) {
     if (*head != NULL && (*head)->data == data) {
         OptimisedNode* temp = *head;
-        // Non-temporal store: bypass the cache when updating the head pointer.
-        __builtin_ia32_movnti((volatile long long*)head, (long long)(*head)->next);
+        // Use non-temporal store via _mm_stream_si64 (x86-64 specific)
+        _mm_stream_si64((long long*)head, (long long)(*head)->next);
         optimised_return_node(temp);
         return;
     }
@@ -91,6 +90,7 @@ void optimised_delete(OptimisedNode** head, int data) {
         temp = temp->next;
     }
 }
+
 
 // Display function remains unchanged.
 void optimised_show(OptimisedNode* head) {
