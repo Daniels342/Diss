@@ -20,9 +20,7 @@ static inline void insert_exit_marker() { }
 
 // Minimal hook for deletion instrumentation.
 // This function is a no-op in C, but can be probed by eBPF.
-void delete_node_info(void *pred, void *target, void *succ) {
-    // No operation: this function exists only as a hook.
-}
+static inline void delete_node_info(void *pred, void *target, void *succ) { }
 
 void verif_optimised_allocate_pool_chunk() {
     VerifOptimisedNode* new_chunk = NULL;
