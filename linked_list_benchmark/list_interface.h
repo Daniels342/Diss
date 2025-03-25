@@ -8,7 +8,7 @@ typedef VerifOptimisedNode Node;
 #define list_delete   verif_optimised_delete
 #define list_show     verif_optimised_show
 #define list_search   verif_optimised_search
-#define list_free_all() verif_optimised_free_all()
+#define list_free_all(...) verif_optimised_free_all()
 #elif defined(USE_OPTIMISED)
 #include "optimised_linked_list.h"
 typedef OptimisedNode Node;
