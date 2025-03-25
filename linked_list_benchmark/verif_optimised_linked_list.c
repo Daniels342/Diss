@@ -76,20 +76,13 @@ void verif_optimised_insert(VerifOptimisedNode** head, int data) {
     insert_exit_marker();
 }
 
-//
-// verif_optimised_delete: deletes the first node with the given data value.
-// Minimal changes have been made; we add a hook when the target node is found.
-//
 void verif_optimised_delete(VerifOptimisedNode** head, int data) {
     if (*head == NULL) return;
     
-    // Check if the head node is the one to be deleted.
     if ((*head)->data == data) {
-        // For head deletion, the predecessor is NULL.
         void *pred = NULL;
         void *target = *head;
         void *succ = (*head)->next;
-        // Hook call: record the intended deletion info.
         delete_node_info(pred, target, succ);
         
         VerifOptimisedNode* temp = *head;
@@ -97,19 +90,14 @@ void verif_optimised_delete(VerifOptimisedNode** head, int data) {
         verif_optimised_return_node(temp);
         return;
     }
-    
-    // Otherwise, traverse the list to find the node to delete.
+
     VerifOptimisedNode* curr = *head;
     while (curr->next != NULL) {
         if (curr->next->data == data) {
-            // Found the node to delete.
             void *pred = curr;
             void *target = curr->next;
             void *succ = curr->next->next;
-            // Call the hook to capture predecessor, target, and successor.
             delete_node_info(pred, target, succ);
-            
-            // Update the links: set curr->next to target->next.
             curr->next = curr->next->next;
             verif_optimised_return_node((VerifOptimisedNode*)target);
             return;
