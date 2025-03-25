@@ -62,7 +62,6 @@ void optimised_insert(OptimisedNode** head, int data) {
     new_node->data = data;
     new_node->next = *head;
     *head = new_node;
-    insert_exit_marker();
 }
 
 void optimised_delete(OptimisedNode** head, int data) {
