@@ -2,25 +2,20 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include "verif_optimised_linked_list.h"
-#include <stdlib.h>  // for posix_memalign
-#include <emmintrin.h>  // for non-temporal store (if needed)
+#include <emmintrin.h>
 
 #define NODE_CHUNK_SIZE 100000
 
-// Global pool variables.
-VerifOptimisedNode* node_pool = NULL;
-VerifOptimisedChunk* pool_chunks = NULL;
+/* Global pool variables for verif_optimised version */
+VerifOptimisedNode* verif_node_pool = NULL;
+VerifOptimisedChunk* verif_pool_chunks = NULL;
 
-// Branch prediction macros.
+/* Branch prediction macros */
 #define likely(x)   __builtin_expect((x), 1)
 #define unlikely(x) __builtin_expect((x), 0)
 
-// Empty marker function (for potential future use).
+/* Empty marker function */
 static inline void insert_exit_marker() { }
-
-// Minimal hook for deletion instrumentation.
-// This function is a no-op in C, but can be probed by eBPF.
-static inline void delete_node_info(void *pred, void *target, void *succ) { }
 
 void verif_optimised_allocate_pool_chunk() {
     VerifOptimisedNode* new_chunk = NULL;
@@ -34,40 +29,38 @@ void verif_optimised_allocate_pool_chunk() {
         free(new_chunk);
         exit(1);
     }
-    
     new_pool_chunk->chunk = new_chunk;
-    new_pool_chunk->next = pool_chunks;
-    pool_chunks = new_pool_chunk;
-    
+    new_pool_chunk->next = verif_pool_chunks;
+    verif_pool_chunks = new_pool_chunk;
     for (int i = 0; i < NODE_CHUNK_SIZE; i++) {
-        new_chunk[i].next_free = node_pool;
-        node_pool = &new_chunk[i];
+        new_chunk[i].next_free = verif_node_pool;
+        verif_node_pool = &new_chunk[i];
     }
 }
 
 static inline void verif_optimised_return_node(VerifOptimisedNode* node) {
-    node->next_free = node_pool;
-    node_pool = node;
+    node->next_free = verif_node_pool;
+    verif_node_pool = node;
 }
 
 void verif_optimised_free_all() {
-    VerifOptimisedChunk* current_chunk = pool_chunks;
+    VerifOptimisedChunk* current_chunk = verif_pool_chunks;
     while (current_chunk != NULL) {
         VerifOptimisedChunk* next_chunk = current_chunk->next;
         free(current_chunk->chunk);
         free(current_chunk);
         current_chunk = next_chunk;
     }
-    node_pool = NULL;
-    pool_chunks = NULL;
+    verif_node_pool = NULL;
+    verif_pool_chunks = NULL;
 }
 
 void verif_optimised_insert(VerifOptimisedNode** head, int data) {
-    if (node_pool == NULL) {
+    if (verif_node_pool == NULL) {
         verif_optimised_allocate_pool_chunk();
     }
-    VerifOptimisedNode* new_node = node_pool;
-    node_pool = node_pool->next_free;
+    VerifOptimisedNode* new_node = verif_node_pool;
+    verif_node_pool = verif_node_pool->next_free;
     new_node->data = data;
     new_node->next = *head;
     *head = new_node;
@@ -75,32 +68,22 @@ void verif_optimised_insert(VerifOptimisedNode** head, int data) {
 }
 
 void verif_optimised_delete(VerifOptimisedNode** head, int data) {
-    if (*head == NULL) return;
-    
-    if ((*head)->data == data) {
-        void *pred = NULL;
-        void *target = *head;
-        void *succ = (*head)->next;
-        delete_node_info(pred, target, succ);
-        
+    if (*head != NULL && (*head)->data == data) {
         VerifOptimisedNode* temp = *head;
-        *head = (*head)->next;
+        _mm_stream_si64((long long*)head, (long long)(*head)->next);
         verif_optimised_return_node(temp);
         return;
     }
-
-    VerifOptimisedNode* curr = *head;
-    while (curr->next != NULL) {
-        if (curr->next->data == data) {
-            void *pred = curr;
-            void *target = curr->next;
-            void *succ = curr->next->next;
-            delete_node_info(pred, target, succ);
-            curr->next = curr->next->next;
-            verif_optimised_return_node((VerifOptimisedNode*)target);
+    VerifOptimisedNode* prev = *head;
+    VerifOptimisedNode* temp = (*head != NULL) ? (*head)->next : NULL;
+    while (temp != NULL) {
+        if (temp->data == data) {
+            prev->next = temp->next;
+            verif_optimised_return_node(temp);
             return;
         }
-        curr = curr->next;
+        prev = temp;
+        temp = temp->next;
     }
 }
 
@@ -113,9 +96,6 @@ void verif_optimised_show(VerifOptimisedNode* head) {
     printf("NULL\n");
 }
 
-//
-// verif_optimised_search: linear search for a node with the given data.
-//
 VerifOptimisedNode* verif_optimised_search(VerifOptimisedNode* head, int data) {
     VerifOptimisedNode* current = head;
     while (likely(current != NULL)) {

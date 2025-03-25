@@ -14,9 +14,6 @@ OptimisedChunk* pool_chunks = NULL;
 #define likely(x)   __builtin_expect((x), 1)
 #define unlikely(x) __builtin_expect((x), 0)
 
-// Empty marker function (for potential future use)
-static inline void insert_exit_marker() { }
-
 void optimised_allocate_pool_chunk() {
     OptimisedNode* new_chunk = NULL;
     if (posix_memalign((void**)&new_chunk, CACHE_LINE_SIZE, NODE_CHUNK_SIZE * sizeof(OptimisedNode)) != 0) {
