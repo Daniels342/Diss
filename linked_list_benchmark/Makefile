@@ -27,8 +27,8 @@ main_optimised: main_optimised.o workload_optimised.o optimised_linked_list.o
 	$(CC) $(CFLAGS) -o main_optimised main_optimised.o workload_optimised.o optimised_linked_list.o
 
 # Build the verifiable optimised binary.
-main_verif_optimised: main_verif_optimised.o workload_optimised.o verif_optimised_linked_list.o
-	$(CC) $(CFLAGS) -o main_verif_optimised main_verif_optimised.o workload_optimised.o verif_optimised_linked_list.o
+main_verif_optimised: main_verif_optimised.o workload_verif.o verif_optimised_linked_list.o
+	$(CC) $(CFLAGS) -o main_verif_optimised main_verif_optimised.o workload_verif.o verif_optimised_linked_list.o
 
 # Compile main.o for baseline.
 main_baseline.o: main.c list_interface.h workload.h
@@ -46,9 +46,13 @@ main_verif_optimised.o: main.c list_interface.h workload.h
 workload.o: workload.c workload.h list_interface.h
 	$(CC) $(CFLAGS) -c workload.c
 
-# Compile workload.o for optimised and verifiable versions.
+# Compile workload.o for optimised version.
 workload_optimised.o: workload.c workload.h list_interface.h
 	$(CC) $(CFLAGS) -DUSE_OPTIMISED -c workload.c -o workload_optimised.o
+
+# Compile workload.o for verifiable version.
+workload_verif.o: workload.c workload.h list_interface.h
+	$(CC) $(CFLAGS) -DUSE_VERIF_OPTIMISED -c workload.c -o workload_verif.o
 
 # Compile baseline linked list.
 baseline_linked_list.o: baseline_linked_list.c baseline_linked_list.h
@@ -63,4 +67,4 @@ verif_optimised_linked_list.o: verif_optimised_linked_list.c verif_optimised_lin
 	$(CC) $(CFLAGS) -c verif_optimised_linked_list.c
 
 clean:
-	rm -f *.o main_baseline main_optimised main_verif_optimised main_baseline.o main_optimised.o main_verif_optimised.o workload_optimised.o
+	rm -f *.o main_baseline main_optimised main_verif_optimised main_baseline.o main_optimised.o main_verif_optimised.o workload_optimised.o workload_verif.o
