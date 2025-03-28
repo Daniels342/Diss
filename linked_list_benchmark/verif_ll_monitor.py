@@ -8,6 +8,14 @@ args = parser.parse_args()
 
 bpf_program = r"""
 #include <uapi/linux/ptrace.h>
+#ifndef PT_REGS_R8
+#define PT_REGS_R8(ctx) ((ctx)->r8)
+#endif
+
+#ifndef PT_REGS_RAX
+#define PT_REGS_RAX(ctx) ((ctx)->rax)
+#endif
+
 struct entry_t { u64 head_addr; int inserted_val; u64 old_head; };
 struct del_hook_t { u64 head_addr; int target_val; u64 pred; u64 next_after; };
 // Combined hash: if deletion candidate is found, update this structure via the hook.
