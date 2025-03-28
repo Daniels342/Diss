@@ -2,63 +2,102 @@
 from bcc import BPF
 import argparse, time
 
-parser = argparse.ArgumentParser(
-    description="Capture non-head deletion state in optimised_delete using register values"
-)
-parser.add_argument("binary", help="Path to the binary (e.g., ./main_optimised)")
+parser = argparse.ArgumentParser(description="Runtime verification of verif-optimised linked list operations")
+parser.add_argument("binary", help="Path to the verif-optimised binary (e.g., ./main_verif_optimised)")
 args = parser.parse_args()
 
-# Based on disassembly, we choose an offset just after candidate->next is loaded.
-# Adjust this value (in hex) as needed; here we use 0x17B0.
-OFFSET = 0x17B0
-
 bpf_program = r"""
-#define __TARGET_ARCH_x86
 #include <uapi/linux/ptrace.h>
-#include <linux/uaccess.h>
-#include <bcc/helpers.h>
-struct del_state_t {
-    u64 prev;          // Previous node pointer (expected in R8)
-    u64 candidate;     // Candidate node pointer (expected in RDX)
-    u64 candidate_next;// Candidate->next value (expected in RAX)
-};
-BPF_HASH(del_state, u32, struct del_state_t);
+struct entry_t { u64 head_addr; int inserted_val; u64 old_head; };
+struct del_hook_t { u64 head_addr; int target_val; u64 pred; u64 next_after; };
+// Combined hash: if deletion candidate is found, update this structure via the hook.
+BPF_HASH(entryinfo, u32, struct entry_t);
+BPF_HASH(delhook, u32, struct del_hook_t);
 
-int probe_delete_state(struct pt_regs *ctx) {
+int on_insert_entry(struct pt_regs *ctx) {
     u32 tid = bpf_get_current_pid_tgid();
-    struct del_state_t state = {};
-    state.prev = PT_REGS_R8(ctx);         // Capture prev
-    state.candidate = PT_REGS_RDX(ctx);     // Capture candidate
-    state.candidate_next = PT_REGS_RAX(ctx);  // Capture candidate->next
-    del_state.update(&tid, &state);
+    struct entry_t val = {};
+    val.head_addr = PT_REGS_PARM1(ctx);
+    val.inserted_val = PT_REGS_PARM2(ctx);
+    u64 old_head = 0;
+    bpf_probe_read_user(&old_head, sizeof(old_head), (void*)val.head_addr);
+    val.old_head = old_head;
+    entryinfo.update(&tid, &val);
     return 0;
 }
-
-int probe_delete_return(struct pt_regs *ctx) {
+int on_insert_return(struct pt_regs *ctx) {
     u32 tid = bpf_get_current_pid_tgid();
-    struct del_state_t *state = del_state.lookup(&tid);
-    if (!state)
-        return 0;
-    u64 final_prev_next = 0;
-    // Read the updated pointer from memory: prev->next.
-    bpf_probe_read_user(&final_prev_next, sizeof(final_prev_next), (void*)(state->prev + 8));
-    if (final_prev_next != state->candidate_next) {
-        bpf_trace_printk("error\n", sizeof("error\n"));
+    struct entry_t *st = entryinfo.lookup(&tid);
+    if (!st) return 0;
+    u64 new_head = 0;
+    bpf_probe_read_user(&new_head, sizeof(new_head), (void*)st->head_addr);
+    if (!new_head) { entryinfo.delete(&tid); return 0; }
+    int new_val = 0;
+    bpf_probe_read_user(&new_val, sizeof(new_val), (void*)new_head);
+    if (new_val != st->inserted_val) { entryinfo.delete(&tid); return 0; }
+    u64 new_next = 0;
+    bpf_probe_read_user(&new_next, sizeof(new_next), (void*)(new_head + 8));
+    if (new_next != st->old_head) { entryinfo.delete(&tid); return 0; }
+    entryinfo.delete(&tid);
+    return 0;
+}
+int on_delete_entry(struct pt_regs *ctx) {
+    u32 tid = bpf_get_current_pid_tgid();
+    struct del_hook_t d = {};
+    d.head_addr = PT_REGS_PARM1(ctx);
+    d.target_val = PT_REGS_PARM2(ctx);
+    // Check if head node is the target.
+    u64 head = 0;
+    bpf_probe_read_user(&head, sizeof(head), (void*)d.head_addr);
+    if (!head) { return 0; }
+    int val = 0;
+    bpf_probe_read_user(&val, sizeof(val), (void*)head);
+    if (val == d.target_val) {
+        d.pred = 0;
+        bpf_probe_read_user(&d.next_after, sizeof(d.next_after), (void*)(head + 8));
+        delhook.update(&tid, &d);
     }
-
-    del_state.delete(&tid);
+    return 0;
+}
+// Hook for non-head deletion: invoked from C when node is found.
+int on_delete_hook(struct pt_regs *ctx) {
+    u32 tid = bpf_get_current_pid_tgid();
+    struct del_hook_t d = {};
+    // Use hook parameters: pred, target, succ.
+    d.pred = PT_REGS_PARM1(ctx);
+    d.target_val = PT_REGS_PARM2(ctx); // Not used for verification, but captured.
+    d.head_addr = PT_REGS_PARM3(ctx);  // Pass head pointer through hook.
+    bpf_probe_read_user(&d.next_after, sizeof(d.next_after), (void*)(PT_REGS_PARM2(ctx) + 8));
+    delhook.update(&tid, &d);
+    return 0;
+}
+int on_delete_return(struct pt_regs *ctx) {
+    u32 tid = bpf_get_current_pid_tgid();
+    struct del_hook_t *d = delhook.lookup(&tid);
+    if (!d) return 0;
+    if (d->pred == 0) {
+        u64 new_head = 0;
+        bpf_probe_read_user(&new_head, sizeof(new_head), (void*)d->head_addr);
+        if (new_head != d->next_after)
+            bpf_trace_printk("ERROR: head deletion: 0x%lx != 0x%lx (tid %d)\\n", new_head, d->next_after, tid);
+    } else {
+        u64 new_link = 0;
+        bpf_probe_read_user(&new_link, sizeof(new_link), (void*)(d->pred + 8));
+        if (new_link != d->next_after)
+            bpf_trace_printk("ERROR: mid deletion: 0x%lx != 0x%lx (tid %d)\\n", new_link, d->next_after, tid);
+    }
+    delhook.delete(&tid);
     return 0;
 }
 """
-
-b = BPF(text=bpf_program, debug=4)
-# Attach the uprobe at the specified offset in optimised_delete.
-b.attach_uprobe(name=args.binary, sym="verif_optimised_delete", fn_name="probe_delete_state")
-b.attach_uretprobe(name=args.binary, sym="verif_optimised_delete", fn_name="probe_delete_return")
-
-print("Attached uprobe at offset 0x%x and uretprobe to optimised_delete." % OFFSET)
+b = BPF(text=bpf_program)
+b.attach_uprobe(name=args.binary, sym="verif_optimised_insert", fn_name="on_insert_entry")
+b.attach_uretprobe(name=args.binary, sym="verif_optimised_insert", fn_name="on_insert_return")
+b.attach_uprobe(name=args.binary, sym="verif_optimised_delete", fn_name="on_delete_entry")
+b.attach_uprobe(name=args.binary, sym="delete_node_info", fn_name="on_delete_hook")
+b.attach_uretprobe(name=args.binary, sym="verif_optimised_delete", fn_name="on_delete_return")
+print("Attached to verif_optimised_insert, verif_optimised_delete, and delete_node_info hook. Ctrl+C to exit.")
 try:
-    while True:
-        time.sleep(5)
+    while(1): time.sleep(5)
 except KeyboardInterrupt:
     print("Exiting...")
