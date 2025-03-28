@@ -84,6 +84,7 @@ int on_delete_hook(struct pt_regs *ctx) {
     return 0;
 }
 int on_delete_return(struct pt_regs *ctx) {
+    bpf_trace_printk("on_delete_return called\\n");
     u32 tid = bpf_get_current_pid_tgid();
     struct del_hook_t *d = delhook.lookup(&tid);
     if (!d) return 0;
