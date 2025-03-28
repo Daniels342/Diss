@@ -88,6 +88,8 @@ int on_delete_return(struct pt_regs *ctx) {
     u32 tid = bpf_get_current_pid_tgid();
     struct del_hook_t *d = delhook.lookup(&tid);
     if (!d) return 0;
+    bpf_trace_printk("Got here");
+
     if (d->pred == 0) {
         u64 new_head = 0;
         bpf_probe_read_user(&new_head, sizeof(new_head), (void*)d->head_addr);
