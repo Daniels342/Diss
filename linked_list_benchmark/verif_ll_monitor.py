@@ -63,11 +63,14 @@ int on_delete_entry(struct pt_regs *ctx) {
 int on_delete_hook(struct pt_regs *ctx) {
     u32 tid = bpf_get_current_pid_tgid();
     struct del_hook_t d = {};
-    // Use hook parameters: pred, target, succ.
-    d.pred = PT_REGS_PARM1(ctx);
-    d.target_val = PT_REGS_PARM2(ctx); // Not used for verification, but captured.
-    d.head_addr = PT_REGS_PARM3(ctx);  // Pass head pointer through hook.
-    bpf_probe_read_user(&d.next_after, sizeof(d.next_after), (void*)(PT_REGS_PARM2(ctx) + 8));
+    // Assume that at our chosen offset:
+    // R8 holds the previous node pointer (prev)
+    // RAX holds candidate->next (the successor pointer)
+    // Optionally, candidate pointer is in RDX (if needed, we can add it to the structure)
+    d.pred = PT_REGS_R8(ctx);       // Previous node pointer.
+    d.next_after = PT_REGS_RAX(ctx);  // Candidate->next, i.e. the expected new link.
+    // d.target_val and d.head_addr can be set from function arguments if needed,
+    // but if our goal is to verify the update of prev->next, these two registers suffice.
     delhook.update(&tid, &d);
     return 0;
 }
