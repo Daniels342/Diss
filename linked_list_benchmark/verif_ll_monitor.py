@@ -16,6 +16,7 @@ bpf_program = r"""
 #define __TARGET_ARCH_x86
 #include <uapi/linux/ptrace.h>
 #include <linux/uaccess.h>
+#include <bcc/helpers.h>
 struct del_state_t {
     u64 prev;          // Previous node pointer (expected in R8)
     u64 candidate;     // Candidate node pointer (expected in RDX)
@@ -52,7 +53,7 @@ int probe_delete_return(struct pt_regs *ctx) {
 
 b = BPF(text=bpf_program, debug=4)
 # Attach the uprobe at the specified offset in optimised_delete.
-b.attach_uprobe(name=args.binary, sym="verif_optimised_delete", fn_name="probe_delete_state", sym_off=0x35)
+b.attach_uprobe(name=args.binary, sym="verif_optimised_delete", fn_name="probe_delete_state")
 b.attach_uretprobe(name=args.binary, sym="verif_optimised_delete", fn_name="probe_delete_return")
 
 print("Attached uprobe at offset 0x%x and uretprobe to optimised_delete." % OFFSET)
