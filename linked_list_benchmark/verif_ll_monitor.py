@@ -13,8 +13,9 @@ bpf_program = r"""
 #endif
 
 #ifndef PT_REGS_RAX
-#define PT_REGS_RAX(ctx) ((ctx)->rax)
+#define PT_REGS_RAX(ctx) ((ctx)->ax)
 #endif
+
 
 struct entry_t { u64 head_addr; int inserted_val; u64 old_head; };
 struct del_hook_t { u64 head_addr; int target_val; u64 pred; u64 next_after; };
