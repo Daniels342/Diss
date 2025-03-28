@@ -42,9 +42,10 @@ int probe_delete_return(struct pt_regs *ctx) {
     // Read the updated pointer from memory: prev->next.
     bpf_probe_read_user(&final_prev_next, sizeof(final_prev_next), (void*)(state->prev + 8));
     if (final_prev_next != state->candidate_next) {
-        bpf_trace_printk("ERROR: post-delete: prev->next 0x%lx != candidate_next 0x%lx (tid %d)\\n",
-                           final_prev_next, state->candidate_next, tid);
+        char fmt[] = "ERROR: post-delete: prev->next 0x%lx != candidate_next 0x%lx (tid %d)\n";
+        bpf_trace_printk(fmt, sizeof(fmt), final_prev_next, state->candidate_next, tid);
     }
+
     del_state.delete(&tid);
     return 0;
 }
