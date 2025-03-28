@@ -94,7 +94,7 @@ b = BPF(text=bpf_program)
 b.attach_uprobe(name=args.binary, sym="verif_optimised_insert", fn_name="on_insert_entry")
 b.attach_uretprobe(name=args.binary, sym="verif_optimised_insert", fn_name="on_insert_return")
 b.attach_uprobe(name=args.binary, sym="verif_optimised_delete", fn_name="on_delete_entry")
-b.attach_uprobe(name=args.binary, sym="delete_node_info", fn_name="on_delete_hook")
+b.attach_uprobe(name=args.binary, sym="verif_optimised_delete", fn_name="on_delete_hook", sym_off=0x35)
 b.attach_uretprobe(name=args.binary, sym="verif_optimised_delete", fn_name="on_delete_return")
 print("Attached to verif_optimised_insert, verif_optimised_delete, and delete_node_info hook. Ctrl+C to exit.")
 try:
