@@ -50,7 +50,7 @@ int probe_delete_return(struct pt_regs *ctx) {
 
 b = BPF(text=bpf_program)
 # Attach the uprobe at the specified offset in optimised_delete.
-b.attach_uprobe(name=args.binary, sym="optimised_delete", fn_name="probe_delete_state", offset=OFFSET)
+b.attach_uprobe(name=args.binary, sym="optimised_delete+0x17b0", fn_name="probe_delete_state")
 b.attach_uretprobe(name=args.binary, sym="optimised_delete", fn_name="probe_delete_return")
 
 print("Attached uprobe at offset 0x%x and uretprobe to optimised_delete." % OFFSET)
