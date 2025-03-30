@@ -13,7 +13,6 @@ import time
 # invariant violations.
 bpf_text = r"""
 #include <uapi/linux/ptrace.h>
-#include <linux/bpf.h>
 struct node {
     u64 next;
     u64 prev;
