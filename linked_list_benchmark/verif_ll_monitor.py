@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 from bcc import BPF
-import time
+import time, argparse
+
+parser = argparse.ArgumentParser(description="Runtime verification of verif-optimised linked list insert operations")
+parser.add_argument("binary", help="Path to the verif-optimised binary (e.g., ./main_verif_optimised)")
+args = parser.parse_args()
 
 # eBPF C program:
 # - We define a simple doubly linked list node structure with 'next' and 'prev' pointers.
@@ -52,8 +56,7 @@ b = BPF(text=bpf_text)
 
 # Attach a kretprobe to the insertion function (assumed here to be named "insert_node").
 # The kretprobe executes after the function returns, so we check the list state after the insert.
-b.attach_kretprobe(event="insert_node", fn_name="retprobe_insert")
-
+b.attach_uretprobe(name=args.binary, sym="verif_optimised_insert", fn_name="retprobe_insert")
 print("Monitoring linked list insertions (post-return verification)... Press Ctrl-C to exit.")
 try:
     while True:
