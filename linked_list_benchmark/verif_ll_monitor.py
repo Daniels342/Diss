@@ -18,32 +18,45 @@ args = parser.parse_args()
 bpf_text = r"""
 #include <uapi/linux/ptrace.h>
 struct node {
-    u64 next;
-    u64 prev;
-    int value;
+    int data;
+    u64 next;      // pointer to next node
+    u64 prev;      // pointer to previous node
+    u64 next_free; // pointer to free list
 };
 
+// This uretprobe function runs after verif_optimised_insert returns.
+// The first parameter of verif_optimised_insert is a pointer to the head pointer.
+// After insertion, *head should point to the newly inserted node.
+// We then verify:
+//  1. The inserted node's 'prev' pointer is 0 (i.e. inserted at the head).
+//  2. If inserted node->next exists, then its 'prev' pointer should equal the address of the inserted node.
 int retprobe_insert(struct pt_regs *ctx) {
-    // Retrieve the pointer to the new node from the first parameter.
-    struct node *new_node = (struct node *)PT_REGS_PARM1(ctx);
-    struct node n = {};
-    
-    // Safely copy the new node's content.
-    if (bpf_probe_read(&n, sizeof(n), new_node) != 0)
+    // Get pointer to head (first argument)
+    u64 head_ptr_addr = (u64)PT_REGS_PARM1(ctx);
+    u64 new_node_addr = 0;
+
+    // Read the head pointer from memory; after insert, *head should be the new node.
+    if (bpf_probe_read(&new_node_addr, sizeof(new_node_addr), (void*)head_ptr_addr) != 0)
+        return 0;
+    if (new_node_addr == 0)
         return 0;
 
-    // Check that the new node is inserted at the head:
-    // Its 'prev' pointer must be 0.
-    if (n.prev != 0) {
+    // Read the inserted node's data.
+    struct node new_node = {};
+    if (bpf_probe_read(&new_node, sizeof(new_node), (void*)new_node_addr) != 0)
+        return 0;
+
+    // Check invariant: inserted node should be at the head, so its 'prev' must be 0.
+    if (new_node.prev != 0) {
         bpf_trace_printk("Invariant violation: inserted node is not at head (prev != 0)\\n");
     }
-    
-    // If the node has a next pointer, verify that the next node's 'prev' points back to new_node.
-    if (n.next != 0) {
+
+    // Check invariant: if new_node->next exists, then new_node->next->prev must equal new_node_addr.
+    if (new_node.next != 0) {
         struct node next_node = {};
-        if (bpf_probe_read(&next_node, sizeof(next_node), (void *)n.next) != 0)
+        if (bpf_probe_read(&next_node, sizeof(next_node), (void*)new_node.next) != 0)
             return 0;
-        if (next_node.prev != (u64)new_node) {
+        if (next_node.prev != new_node_addr) {
             bpf_trace_printk("Invariant violation: new->next->prev != new (after insert)\\n");
         }
     }
