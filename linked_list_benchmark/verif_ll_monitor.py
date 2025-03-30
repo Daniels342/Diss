@@ -31,7 +31,7 @@ struct node {
 //  1. The inserted node's 'prev' pointer is 0 (i.e. inserted at the head).
 //  2. If inserted node->next exists, then its 'prev' pointer should equal the address of the inserted node.
 int retprobe_insert(struct pt_regs *ctx) {
-
+    return 0;
 }
 """
 
