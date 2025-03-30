@@ -5,11 +5,16 @@
 
 #define CACHE_LINE_SIZE 64
 
+#define CACHE_LINE_SIZE 64
+
 typedef struct OptimisedNode {
-    int data;
-    struct OptimisedNode* next;
-    struct OptimisedNode* prev;  // Added for doubly linked list support.
-    struct OptimisedNode* next_free;
+    int data;                           // 4 bytes
+    struct OptimisedNode* next;         // 8 bytes
+    struct OptimisedNode* prev;         // 8 bytes
+    struct OptimisedNode* next_free;    // 8 bytes
+    // Total without padding: 4 + 8 + 8 + 8 = 28 bytes.
+    // Padding needed: 64 - 28 = 36 bytes.
+    char padding[64 - (sizeof(int) + 3 * sizeof(void*))];
 } OptimisedNode __attribute__((aligned(CACHE_LINE_SIZE)));
 
 typedef struct OptimisedChunk {
