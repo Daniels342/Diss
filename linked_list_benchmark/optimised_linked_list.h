@@ -10,7 +10,7 @@ typedef struct OptimisedNode {
     struct OptimisedNode* next;
     struct OptimisedNode* prev;  // Added for doubly linked list support.
     struct OptimisedNode* next_free;
-} OptimisedNode __attribute__();
+} OptimisedNode;
 
 typedef struct OptimisedChunk {
     OptimisedNode* chunk;
