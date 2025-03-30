@@ -2,17 +2,20 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include "optimised_linked_list.h"
-#include <emmintrin.h>  // For non-temporal store intrinsic
+#include <emmintrin.h>
 
 #define NODE_CHUNK_SIZE 100000
 
-// Global node pool and chunk list.
+/* Global pool variables for optimised version */
 OptimisedNode* node_pool = NULL;
 OptimisedChunk* pool_chunks = NULL;
 
-// Define branch prediction hints.
+/* Branch prediction macros */
 #define likely(x)   __builtin_expect((x), 1)
 #define unlikely(x) __builtin_expect((x), 0)
+
+/* Empty marker function */
+static inline void insert_exit_marker() { }
 
 void optimised_allocate_pool_chunk() {
     OptimisedNode* new_chunk = NULL;
@@ -26,11 +29,11 @@ void optimised_allocate_pool_chunk() {
         free(new_chunk);
         exit(1);
     }
-    
     new_pool_chunk->chunk = new_chunk;
     new_pool_chunk->next = pool_chunks;
     pool_chunks = new_pool_chunk;
     for (int i = 0; i < NODE_CHUNK_SIZE; i++) {
+        // Initialize pointers for safety
         new_chunk[i].next = NULL;
         new_chunk[i].prev = NULL;
         new_chunk[i].next_free = node_pool;
@@ -68,6 +71,7 @@ void optimised_insert(OptimisedNode** head, int data) {
         (*head)->prev = new_node;
     }
     *head = new_node;
+    insert_exit_marker();
 }
 
 void optimised_delete(OptimisedNode** head, int data) {
@@ -80,16 +84,13 @@ void optimised_delete(OptimisedNode** head, int data) {
         optimised_return_node(temp);
         return;
     }
-    
     OptimisedNode* current = *head;
     while (current != NULL) {
         if (current->data == data) {
-            if (current->prev != NULL) {
+            if (current->prev != NULL)
                 current->prev->next = current->next;
-            }
-            if (current->next != NULL) {
+            if (current->next != NULL)
                 current->next->prev = current->prev;
-            }
             optimised_return_node(current);
             return;
         }
@@ -108,21 +109,10 @@ void optimised_show(OptimisedNode* head) {
 
 OptimisedNode* optimised_search(OptimisedNode* head, int data) {
     OptimisedNode* current = head;
-    while (current && current->next) {
-        __builtin_prefetch(current->next, 0, 3);
-        if (current->next->next) {
-            __builtin_prefetch(current->next->next, 0, 3);
-        }
-        if (likely(current->data == data)) {
+    while (likely(current != NULL)) {
+        if (current->data == data)
             return current;
-        }
-        if (likely(current->next->data == data)) {
-            return current->next;
-        }
-        current = current->next->next;
-    }
-    if (current && current->data == data) {
-        return current;
+        current = current->next;
     }
     return NULL;
 }
