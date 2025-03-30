@@ -1,71 +1,61 @@
-#!/usr/bin/env python3
 from bcc import BPF
-import argparse, time
+import time
 
-parser = argparse.ArgumentParser(description="Runtime verification of verif-optimised linked list insert operations")
-parser.add_argument("binary", help="Path to the verif-optimised binary (e.g., ./main_verif_optimised)")
-args = parser.parse_args()
-
-bpf_program = r"""
-#include <uapi/linux/ptrace.h>
-
-struct entry_t {
-    u64 head_addr;
-    int inserted_val;
-    u64 old_head;
-};
-BPF_HASH(entryinfo, u32, struct entry_t);
-
-// Define the node structure that we read from user space.
-struct verif_node {
-    int data;
-    u64 next;  // assuming pointers are 64-bit; if 32-bit adjust accordingly.
-    // We don't need next_free for the verification checks.
+# eBPF C program:
+# - We define a simple doubly linked list node structure with 'next' and 'prev' pointers.
+# - The kretprobe (attached to the return of the insert function) reads the inserted node
+#   and checks the following invariants:
+#     1. The new node must be inserted at the head, so new_node->prev must be 0.
+#     2. If new_node->next exists, then new_node->next->prev must equal new_node.
+#
+# The program uses bpf_probe_read() for safe access and prints a trace message only on
+# invariant violations.
+bpf_text = r"""
+struct node {
+    u64 next;
+    u64 prev;
+    int value;
 };
 
-int on_insert_entry(struct pt_regs *ctx) {
-    u32 tid = bpf_get_current_pid_tgid() & 0xFFFFFFFF;
-    struct entry_t val = {};
-    val.head_addr = PT_REGS_PARM1(ctx);
-    val.inserted_val = PT_REGS_PARM2(ctx);
-    u64 old_head = 0;
-    // Read the value of the head pointer before insertion.
-    bpf_probe_read_user(&old_head, sizeof(old_head), (void*)val.head_addr);
-    val.old_head = old_head;
-    entryinfo.update(&tid, &val);
-    return 0;
-}
+int retprobe_insert(struct pt_regs *ctx) {
+    // Retrieve the pointer to the new node from the first parameter.
+    struct node *new_node = (struct node *)PT_REGS_PARM1(ctx);
+    struct node n = {};
+    
+    // Safely copy the new node's content.
+    if (bpf_probe_read(&n, sizeof(n), new_node) != 0)
+        return 0;
 
-int on_insert_return(struct pt_regs *ctx) {
-    u32 tid = bpf_get_current_pid_tgid() & 0xFFFFFFFF;
-    struct entry_t *st = entryinfo.lookup(&tid);
-    if (!st) return 0;
-    u64 new_head = 0;
-    // Read the updated head pointer from the stored head_addr.
-    bpf_probe_read_user(&new_head, sizeof(new_head), (void*)st->head_addr);
-    if (!new_head) { 
-        entryinfo.delete(&tid);
-        return 0;
+    // Check that the new node is inserted at the head:
+    // Its 'prev' pointer must be 0.
+    if (n.prev != 0) {
+        bpf_trace_printk("Invariant violation: inserted node is not at head (prev != 0)\\n");
     }
-    // Read the entire node structure in one go.
-    struct verif_node node = {};
-    bpf_probe_read_user(&node, sizeof(node), (void*)new_head);
-    // Verify that the node's data is what we expect.
-    if (node.data != st->inserted_val || node.next != st->old_head) {
-        entryinfo.delete(&tid);
-        return 0;
+    
+    // If the node has a next pointer, verify that the next node's 'prev' points back to new_node.
+    if (n.next != 0) {
+        struct node next_node = {};
+        if (bpf_probe_read(&next_node, sizeof(next_node), (void *)n.next) != 0)
+            return 0;
+        if (next_node.prev != (u64)new_node) {
+            bpf_trace_printk("Invariant violation: new->next->prev != new (after insert)\\n");
+        }
     }
-    entryinfo.delete(&tid);
     return 0;
 }
 """
 
-b = BPF(text=bpf_program)
-b.attach_uprobe(name=args.binary, sym="verif_optimised_insert", fn_name="on_insert_entry")
-b.attach_uretprobe(name=args.binary, sym="verif_optimised_insert", fn_name="on_insert_return")
-print("Attached to verif_optimised_insert probes. Ctrl+C to exit.")
+# Load the BPF program.
+b = BPF(text=bpf_text)
+
+# Attach a kretprobe to the insertion function (assumed here to be named "insert_node").
+# The kretprobe executes after the function returns, so we check the list state after the insert.
+b.attach_kretprobe(event="insert_node", fn_name="retprobe_insert")
+
+print("Monitoring linked list insertions (post-return verification)... Press Ctrl-C to exit.")
 try:
     while True:
-        time.sleep(5)
+        (task, pid, cpu, flags, ts, msg) = b.trace_fields()
+        print("%s" % (msg))
 except KeyboardInterrupt:
-    print("Exiting...")
+    pass
