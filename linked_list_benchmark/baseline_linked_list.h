@@ -4,6 +4,7 @@
 typedef struct BaselineNode {
     int data;
     struct BaselineNode* next;
+    struct BaselineNode* prev;  
 } BaselineNode;
 
 void baseline_insert(BaselineNode** head, int data);

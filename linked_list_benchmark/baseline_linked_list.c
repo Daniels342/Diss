@@ -9,35 +9,42 @@ void baseline_insert(BaselineNode** head, int data) {
         exit(1);
     }
     new_node->data = data;
+    // Insert at the head: new_node->prev is NULL.
     new_node->next = *head;
+    new_node->prev = NULL;
+    if (*head != NULL) {
+        (*head)->prev = new_node;
+    }
     *head = new_node;
 }
 
 void baseline_delete(BaselineNode** head, int data) {
-    if (*head == NULL) return;
-    BaselineNode* temp = *head;
-    if (temp->data == data) {
-        *head = temp->next;
-        free(temp);
+    if (*head == NULL)
         return;
-    }
-    BaselineNode* prev = temp;
-    temp = temp->next;
-    while (temp) {
-        if (temp->data == data) {
-            prev->next = temp->next;
-            free(temp);
+    BaselineNode* current = *head;
+    while (current) {
+        if (current->data == data) {
+            // If current is not the head, update its previous node.
+            if (current->prev)
+                current->prev->next = current->next;
+            else
+                *head = current->next;  // current is head
+
+            // If there is a next node, update its prev pointer.
+            if (current->next)
+                current->next->prev = current->prev;
+
+            free(current);
             return;
         }
-        prev = temp;
-        temp = temp->next;
+        current = current->next;
     }
 }
 
 void baseline_show(BaselineNode* head) {
     BaselineNode* current = head;
     while (current) {
-        printf("%d -> ", current->data);
+        printf("%d <-> ", current->data);
         current = current->next;
     }
     printf("NULL\n");

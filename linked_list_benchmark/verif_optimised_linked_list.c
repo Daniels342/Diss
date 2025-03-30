@@ -33,6 +33,9 @@ void verif_optimised_allocate_pool_chunk() {
     new_pool_chunk->next = verif_pool_chunks;
     verif_pool_chunks = new_pool_chunk;
     for (int i = 0; i < NODE_CHUNK_SIZE; i++) {
+        // Initialize pointers for safety
+        new_chunk[i].next = NULL;
+        new_chunk[i].prev = NULL;
         new_chunk[i].next_free = verif_node_pool;
         verif_node_pool = &new_chunk[i];
     }
@@ -63,6 +66,10 @@ void verif_optimised_insert(VerifOptimisedNode** head, int data) {
     verif_node_pool = verif_node_pool->next_free;
     new_node->data = data;
     new_node->next = *head;
+    new_node->prev = NULL;
+    if (*head != NULL) {
+        (*head)->prev = new_node;
+    }
     *head = new_node;
     insert_exit_marker();
 }
@@ -70,27 +77,31 @@ void verif_optimised_insert(VerifOptimisedNode** head, int data) {
 void verif_optimised_delete(VerifOptimisedNode** head, int data) {
     if (*head != NULL && (*head)->data == data) {
         VerifOptimisedNode* temp = *head;
-        _mm_stream_si64((long long*)head, (long long)(*head)->next);
+        *head = (*head)->next;
+        if (*head != NULL) {
+            (*head)->prev = NULL;
+        }
         verif_optimised_return_node(temp);
         return;
     }
-    VerifOptimisedNode* prev = *head;
-    VerifOptimisedNode* temp = (*head != NULL) ? (*head)->next : NULL;
-    while (temp != NULL) {
-        if (temp->data == data) {
-            prev->next = temp->next;
-            verif_optimised_return_node(temp);
+    VerifOptimisedNode* current = *head;
+    while (current != NULL) {
+        if (current->data == data) {
+            if (current->prev != NULL)
+                current->prev->next = current->next;
+            if (current->next != NULL)
+                current->next->prev = current->prev;
+            verif_optimised_return_node(current);
             return;
         }
-        prev = temp;
-        temp = temp->next;
+        current = current->next;
     }
 }
 
 void verif_optimised_show(VerifOptimisedNode* head) {
     VerifOptimisedNode* current = head;
     while (current != NULL) {
-        printf("%d -> ", current->data);
+        printf("%d <-> ", current->data);
         current = current->next;
     }
     printf("NULL\n");

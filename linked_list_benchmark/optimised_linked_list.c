@@ -31,12 +31,17 @@ void optimised_allocate_pool_chunk() {
     new_pool_chunk->next = pool_chunks;
     pool_chunks = new_pool_chunk;
     for (int i = 0; i < NODE_CHUNK_SIZE; i++) {
+        new_chunk[i].next = NULL;
+        new_chunk[i].prev = NULL;
         new_chunk[i].next_free = node_pool;
         node_pool = &new_chunk[i];
     }
 }
 
 static inline void optimised_return_node(OptimisedNode* node) {
+    // Reset the pointers to avoid stale links.
+    node->next = NULL;
+    node->prev = NULL;
     node->next_free = node_pool;
     node_pool = node;
 }
@@ -61,52 +66,57 @@ void optimised_insert(OptimisedNode** head, int data) {
     node_pool = node_pool->next_free;
     new_node->data = data;
     new_node->next = *head;
+    new_node->prev = NULL;
+    if (*head != NULL) {
+        (*head)->prev = new_node;
+    }
     *head = new_node;
 }
 
 void optimised_delete(OptimisedNode** head, int data) {
     if (*head != NULL && (*head)->data == data) {
         OptimisedNode* temp = *head;
-        // Use non-temporal store via _mm_stream_si64 (x86-64 specific)
-        _mm_stream_si64((long long*)head, (long long)(*head)->next);
+        *head = (*head)->next;
+        if (*head != NULL) {
+            (*head)->prev = NULL;
+        }
+        // Use non-temporal store intrinsic as in your original code.
+        _mm_stream_si64((long long*)head, (long long)(temp->next));
         optimised_return_node(temp);
         return;
     }
-
-    OptimisedNode* prev = *head;
-    OptimisedNode* temp = (*head != NULL) ? (*head)->next : NULL;
-
-    while (temp != NULL) {
-        if (temp->data == data) {
-            prev->next = temp->next;
-            optimised_return_node(temp);
+    
+    OptimisedNode* current = *head;
+    while (current != NULL) {
+        if (current->data == data) {
+            if (current->prev != NULL) {
+                current->prev->next = current->next;
+            }
+            if (current->next != NULL) {
+                current->next->prev = current->prev;
+            }
+            optimised_return_node(current);
             return;
         }
-        prev = temp;
-        temp = temp->next;
+        current = current->next;
     }
 }
 
-
-// Display function remains unchanged.
 void optimised_show(OptimisedNode* head) {
     OptimisedNode* current = head;
     while (current != NULL) {
-        printf("%d -> ", current->data);
+        printf("%d <-> ", current->data);
         current = current->next;
     }
     printf("NULL\n");
 }
 
-// Aggressively unrolled search function with multi-level prefetching.
 OptimisedNode* optimised_search(OptimisedNode* head, int data) {
     OptimisedNode* current = head;
-    // Process two nodes per iteration.
+    // Process two nodes per iteration for efficiency.
     while (current && current->next) {
-        // Prefetch the next two nodes to reduce latency.
-        if (current->next) {
-            __builtin_prefetch(current->next, 0, 3);
-        }
+        // Prefetch the next nodes to reduce latency.
+        __builtin_prefetch(current->next, 0, 3);
         if (current->next->next) {
             __builtin_prefetch(current->next->next, 0, 3);
         }
