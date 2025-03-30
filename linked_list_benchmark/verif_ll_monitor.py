@@ -12,6 +12,8 @@ import time
 # The program uses bpf_probe_read() for safe access and prints a trace message only on
 # invariant violations.
 bpf_text = r"""
+#include <uapi/linux/ptrace.h>
+#include <linux/bpf.h>
 struct node {
     u64 next;
     u64 prev;
