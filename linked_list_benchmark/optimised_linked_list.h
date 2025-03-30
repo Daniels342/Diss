@@ -15,7 +15,7 @@ typedef struct OptimisedNode {
 typedef struct OptimisedChunk {
     OptimisedNode* chunk;
     struct OptimisedChunk* next;
-} OptimisedChunk __attribute__((aligned(CACHE_LINE_SIZE)));
+} OptimisedChunk;
 
 void optimised_insert(OptimisedNode** head, int data);
 void optimised_delete(OptimisedNode** head, int data);
