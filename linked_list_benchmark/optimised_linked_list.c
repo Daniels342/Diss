@@ -109,10 +109,21 @@ void optimised_show(OptimisedNode* head) {
 
 OptimisedNode* optimised_search(OptimisedNode* head, int data) {
     OptimisedNode* current = head;
-    while (likely(current != NULL)) {
-        if (current->data == data)
+    while (current && current->next) {
+        __builtin_prefetch(current->next, 0, 3);
+        if (current->next->next) {
+            __builtin_prefetch(current->next->next, 0, 3);
+        }
+        if (likely(current->data == data)) {
             return current;
-        current = current->next;
+        }
+        if (likely(current->next->data == data)) {
+            return current->next;
+        }
+        current = current->next->next;
+    }
+    if (current && current->data == data) {
+        return current;
     }
     return NULL;
 }
