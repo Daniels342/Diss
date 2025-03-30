@@ -20,7 +20,7 @@ typedef struct VerifOptimisedChunk {
 void verif_optimised_insert(VerifOptimisedNode** head, int data);
 void verif_optimised_delete(VerifOptimisedNode** head, int data);
 void verif_optimised_show(VerifOptimisedNode* head);
-VerifOptimisedNode* verif_optimised_search(VerifOptimisedNode* head);
+VerifOptimisedNode* verif_optimised_search(VerifOptimisedNode* head, int data);
 void verif_optimised_free_all();
 void verif_optimised_allocate_pool_chunk();
 
