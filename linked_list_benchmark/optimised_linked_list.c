@@ -39,9 +39,6 @@ void optimised_allocate_pool_chunk() {
 }
 
 static inline void optimised_return_node(OptimisedNode* node) {
-    // Reset the pointers to avoid stale links.
-    node->next = NULL;
-    node->prev = NULL;
     node->next_free = node_pool;
     node_pool = node;
 }
