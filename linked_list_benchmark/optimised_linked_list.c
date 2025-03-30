@@ -77,8 +77,6 @@ void optimised_delete(OptimisedNode** head, int data) {
         if (*head != NULL) {
             (*head)->prev = NULL;
         }
-        // Use non-temporal store intrinsic as in your original code.
-        _mm_stream_si64((long long*)head, (long long)(temp->next));
         optimised_return_node(temp);
         return;
     }
@@ -110,9 +108,7 @@ void optimised_show(OptimisedNode* head) {
 
 OptimisedNode* optimised_search(OptimisedNode* head, int data) {
     OptimisedNode* current = head;
-    // Process two nodes per iteration for efficiency.
     while (current && current->next) {
-        // Prefetch the next nodes to reduce latency.
         __builtin_prefetch(current->next, 0, 3);
         if (current->next->next) {
             __builtin_prefetch(current->next->next, 0, 3);
