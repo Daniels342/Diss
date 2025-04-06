@@ -10,8 +10,8 @@ int random_range(int min, int max) {
 
 int main() {
     int num_initial = 1000000;
-    int duration = 60;
-    int insert_percent = 100, search_percent = 0, delete_percent = 0;
+    int duration = 10;
+    int insert_percent = 34, search_percent = 33, delete_percent = 33;
 
     srand(time(NULL));
     
