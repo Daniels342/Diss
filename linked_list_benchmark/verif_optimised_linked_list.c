@@ -17,6 +17,9 @@ VerifOptimisedChunk* verif_pool_chunks = NULL;
 /* Empty marker function */
 static inline void insert_exit_marker() { }
 
+void deletion_instrumentation(void *pred, void *target, void *succ) {
+    // This function is intentionally left blank.
+}
 void verif_optimised_allocate_pool_chunk() {
     VerifOptimisedNode* new_chunk = NULL;
     if (posix_memalign((void**)&new_chunk, CACHE_LINE_SIZE, NODE_CHUNK_SIZE * sizeof(VerifOptimisedNode)) != 0) {
@@ -78,6 +81,7 @@ int verif_optimised_delete(VerifOptimisedNode** head, int data) {
     VerifOptimisedNode* temp = (*head != NULL) ? (*head)->next : NULL;
     while (temp != NULL) {
         if (temp->data == data) {
+            deletion_instrumentation(prev, temp, temp->next);
             prev->next = temp->next;
             verif_optimised_return_node(temp);
             return 1; // Deletion successful.

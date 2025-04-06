@@ -68,21 +68,29 @@ int on_delete_entry(struct pt_regs *ctx) {
     }
     return 0;
 }
-// Hook for non-head deletion: invoked from C when node is found.
+// Attach a uprobe to the dummy function deletion_instrumentation in the C code.
 int on_delete_hook(struct pt_regs *ctx) {
     u32 tid = bpf_get_current_pid_tgid();
     struct del_hook_t d = {};
-    // Assume that at our chosen offset:
-    // R8 holds the previous node pointer (prev)
-    // RAX holds candidate->next (the successor pointer)
-    // Optionally, candidate pointer is in RDX (if needed, we can add it to the structure)
-    d.pred = PT_REGS_R8(ctx);       // Previous node pointer.
-    d.next_after = PT_REGS_RAX(ctx);  // Candidate->next, i.e. the expected new link.
-    // d.target_val and d.head_addr can be set from function arguments if needed,
-    // but if our goal is to verify the update of prev->next, these two registers suffice.
+    // Capture the three parameters passed to deletion_instrumentation:
+    // pred, target, and succ.
+    d.pred = PT_REGS_PARM1(ctx);
+    // We do not need to capture target for our check, but could store it if desired.
+    d.next_after = PT_REGS_PARM3(ctx);
+    // Optionally, we could also set d.head_addr and d.target_val from other sources if needed.
     delhook.update(&tid, &d);
     return 0;
 }
+int probe_deletion_instrumentation(struct pt_regs *ctx) {
+    u32 tid = bpf_get_current_pid_tgid();
+    struct del_info_t info = {};
+    info.pred = PT_REGS_PARM1(ctx);
+    info.target = PT_REGS_PARM2(ctx);
+    info.succ = PT_REGS_PARM3(ctx);
+    delinfo.update(&tid, &info);
+    return 0;
+}
+
 int on_delete_return(struct pt_regs *ctx) {
     u32 tid = bpf_get_current_pid_tgid();
     struct del_hook_t *d = delhook.lookup(&tid);
@@ -106,7 +114,7 @@ b = BPF(text=bpf_program)
 b.attach_uprobe(name=args.binary, sym="verif_optimised_insert", fn_name="on_insert_entry")
 b.attach_uretprobe(name=args.binary, sym="verif_optimised_insert", fn_name="on_insert_return")
 b.attach_uprobe(name=args.binary, sym="verif_optimised_delete", fn_name="on_delete_entry")
-b.attach_uprobe(name=args.binary, sym="verif_optimised_delete", fn_name="on_delete_hook", sym_off=0x35)
+b.attach_uprobe(name=args.binary, sym="deletion_instrumentation", fn_name="on_delete_hook")
 b.attach_uretprobe(name=args.binary, sym="verif_optimised_delete", fn_name="on_delete_return")
 print("Attached to verif_optimised_insert, verif_optimised_delete, and delete_node_info hook. Ctrl+C to exit.")
 try:
