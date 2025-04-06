@@ -67,7 +67,7 @@ void verif_optimised_insert(VerifOptimisedNode** head, int data) {
     insert_exit_marker();
 }
 
-void verif_optimised_delete(VerifOptimisedNode** head, int data) {
+int verif_optimised_delete(VerifOptimisedNode** head, int data) {
     if (*head != NULL && (*head)->data == data) {
         VerifOptimisedNode* temp = *head;
         _mm_stream_si64((long long*)head, (long long)(*head)->next);

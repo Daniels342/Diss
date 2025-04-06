@@ -14,7 +14,7 @@ void baseline_insert(BaselineNode** head, int data) {
     *head = new_node;
 }
 
-void baseline_delete(BaselineNode** head, int data) {
+int baseline_delete(BaselineNode** head, int data) {
     if (*head == NULL)
         return 0; // List is empty.
     

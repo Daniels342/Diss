@@ -67,7 +67,7 @@ void optimised_insert(OptimisedNode** head, int data) {
     insert_exit_marker();
 }
 
-void optimised_delete(OptimisedNode** head, int data) {
+int optimised_delete(OptimisedNode** head, int data) {
     if (*head != NULL && (*head)->data == data) {
         OptimisedNode* temp = *head;
         _mm_stream_si64((long long*)head, (long long)(*head)->next);
