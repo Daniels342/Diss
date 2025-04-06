@@ -11,8 +11,8 @@ int random_range(int min, int max) {
 }
 
 int main() {
-    int num_initial = 1000000;
-    int duration = 300;
+    int num_initial = 300;  // Pre-fill with 300 random values.
+    int duration = 300;     // Duration for the workload in seconds.
     int insert_percent = 34, search_percent = 33, delete_percent = 33;
 
     srand(time(NULL));
@@ -36,11 +36,7 @@ int main() {
         run_workload(&head, insert_percent, search_percent, delete_percent, duration);
         
         // Clean up the list in the child.
-#ifdef USE_OPTIMISED
-        list_free_all();
-#else
         list_free_all(&head);
-#endif
         exit(EXIT_SUCCESS);
     } else {
         // Parent process: wait for the child to finish.

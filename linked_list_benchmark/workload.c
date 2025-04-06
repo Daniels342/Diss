@@ -1,7 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#include "workload.h"  // Assuming this header defines Node and your list functions
+#include "workload.h"
+#include "list_interface.h"
 
 int random_in_range(int min, int max) {
     return rand() % (max - min + 1) + min;
@@ -13,8 +14,11 @@ void run_workload(Node** head, int insert_percentage, int search_percentage, int
     double insert_time = 0.0;
     double search_time = 0.0;
     double delete_time = 0.0;
+    
+    // Compute the current length from the pre-populated list.
+    int current_length = list_length(*head);
 
-    // Use clock_gettime to get high-resolution start time
+    // Use clock_gettime for high-resolution timing.
     struct timespec start_time, current_time;
     clock_gettime(CLOCK_MONOTONIC, &start_time);
     double elapsed_sec = 0.0;
@@ -26,12 +30,16 @@ void run_workload(Node** head, int insert_percentage, int search_percentage, int
         double diff = 0.0;
 
         if (operation_choice < insert_percentage) {
-            clock_gettime(CLOCK_MONOTONIC, &op_start);
-            list_insert(head, random_value);
-            clock_gettime(CLOCK_MONOTONIC, &op_end);
-            diff = (op_end.tv_sec - op_start.tv_sec) + (op_end.tv_nsec - op_start.tv_nsec) / 1e9;
-            insert_time += diff;
-            insert_count++;
+            // Only insert if the list length is below 1000.
+            if (current_length < 1000) {
+                clock_gettime(CLOCK_MONOTONIC, &op_start);
+                list_insert(head, random_value);
+                clock_gettime(CLOCK_MONOTONIC, &op_end);
+                diff = (op_end.tv_sec - op_start.tv_sec) + (op_end.tv_nsec - op_start.tv_nsec) / 1e9;
+                insert_time += diff;
+                insert_count++;
+                current_length++;  // update counter
+            }
         } else if (operation_choice < insert_percentage + search_percentage) {
             clock_gettime(CLOCK_MONOTONIC, &op_start);
             list_search(*head, random_value);
@@ -41,7 +49,10 @@ void run_workload(Node** head, int insert_percentage, int search_percentage, int
             search_count++;
         } else if (operation_choice < insert_percentage + search_percentage + delete_percentage) {
             clock_gettime(CLOCK_MONOTONIC, &op_start);
-            list_delete(head, random_value);
+            // If deletion succeeds, update current_length.
+            if (list_delete(head, random_value)) {
+                current_length--;
+            }
             clock_gettime(CLOCK_MONOTONIC, &op_end);
             diff = (op_end.tv_sec - op_start.tv_sec) + (op_end.tv_nsec - op_start.tv_nsec) / 1e9;
             delete_time += diff;
@@ -49,9 +60,10 @@ void run_workload(Node** head, int insert_percentage, int search_percentage, int
         }
         total_operations++;
 
-        // Update elapsed time using high-resolution clock
+        // Update elapsed time.
         clock_gettime(CLOCK_MONOTONIC, &current_time);
-        elapsed_sec = (current_time.tv_sec - start_time.tv_sec) + (current_time.tv_nsec - start_time.tv_nsec) / 1e9;
+        elapsed_sec = (current_time.tv_sec - start_time.tv_sec) +
+                      (current_time.tv_nsec - start_time.tv_nsec) / 1e9;
     }
 
     printf("Total Operations: %d\n", total_operations);
