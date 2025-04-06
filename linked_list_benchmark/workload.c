@@ -51,15 +51,19 @@ void run_workload(Node** head, int insert_percentage, int search_percentage, int
             clock_gettime(CLOCK_MONOTONIC, &op_start);
             // If deletion succeeds, update current_length.
             if (list_delete(head, random_value)) {
+                clock_gettime(CLOCK_MONOTONIC, &op_end);
+                diff = (op_end.tv_sec - op_start.tv_sec) + (op_end.tv_nsec - op_start.tv_nsec) / 1e9;
+                delete_time += diff;
+                delete_count++;
                 current_length--;
             }
-            clock_gettime(CLOCK_MONOTONIC, &op_end);
-            diff = (op_end.tv_sec - op_start.tv_sec) + (op_end.tv_nsec - op_start.tv_nsec) / 1e9;
-            delete_time += diff;
-            delete_count++;
+            else {
+            // If deletion fails, just measure the time.
+                clock_gettime(CLOCK_MONOTONIC, &op_end);
+            }
+
         }
         total_operations++;
-
         // Update elapsed time.
         clock_gettime(CLOCK_MONOTONIC, &current_time);
         elapsed_sec = (current_time.tv_sec - start_time.tv_sec) +
