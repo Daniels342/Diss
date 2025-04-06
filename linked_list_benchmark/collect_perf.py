@@ -8,7 +8,7 @@ import argparse
 def run_perf(binary):
     # Run "perf stat" on the given binary.
     # We capture stdout (from the binary) and stderr (from perf).
-    cmd = ["perf", "stat", "-e", "cache-misses,cycles,instructions,branch-misses", binary]
+    cmd = ["perf", "stat", "--inherit", "-e", "cache-misses,cycles,instructions,branch-misses", binary]
     result = subprocess.run(cmd, capture_output=True, text=True)
     return result.stdout, result.stderr
 
@@ -120,7 +120,7 @@ def main():
                 }
                 writer.writerow(row)
                 # Optionally pause briefly between runs.
-                time.sleep(1)
+                time.sleep(0.5)
 
     print("Data collection complete. Results written to", args.output)
 

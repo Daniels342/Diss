@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <unistd.h>
+#include <sys/wait.h>
 #include "list_interface.h"
 #include "workload.h"
 
@@ -14,22 +16,36 @@ int main() {
     int insert_percent = 34, search_percent = 33, delete_percent = 33;
 
     srand(time(NULL));
-    
     Node* head = NULL;
+
     // Pre-populate the list with random values.
     for (int i = 0; i < num_initial; i++) {
         int random_value = random_range(1, 10000);
         list_insert(&head, random_value);
     }
     
-    run_workload(&head, insert_percent, search_percent, delete_percent, duration);
+    // Fork the process after pre-population.
+    pid_t pid = fork();
+    if (pid < 0) {
+        perror("fork");
+        exit(EXIT_FAILURE);
+    }
     
-    // Free allocated memory.
+    if (pid == 0) {
+        // Child process: execute the workload.
+        run_workload(&head, insert_percent, search_percent, delete_percent, duration);
+        
+        // Clean up the list in the child.
 #ifdef USE_OPTIMISED
-    list_free_all();
+        list_free_all();
 #else
-    list_free_all(&head);
+        list_free_all(&head);
 #endif
-
-    return 0;
+        exit(EXIT_SUCCESS);
+    } else {
+        // Parent process: wait for the child to finish.
+        int status;
+        wait(&status);
+        exit(EXIT_SUCCESS);
+    }
 }
