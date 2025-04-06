@@ -17,7 +17,7 @@ bpf_text = r"""
 #define PT_REGS_PARM1(ctx) ((ctx)->di)
 #endif
 
-#define MAX_LEN 100
+#define MAX_LEN 1000
 #define TWO_SECONDS 2000000000ULL
 
 // Map to hold the expected length (one element at key 0)
