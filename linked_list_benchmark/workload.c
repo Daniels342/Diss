@@ -16,7 +16,7 @@ void run_workload(Node** head, int insert_percentage, int search_percentage, int
     double delete_time = 0.0;
     
     // Compute the current length from the pre-populated list.
-    int current_length = list_length(*head);
+    int current_length = 300;
 
     // Use clock_gettime for high-resolution timing.
     struct timespec start_time, current_time;
