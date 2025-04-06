@@ -80,6 +80,7 @@ int on_delete_hook(struct pt_regs *ctx) {
     // Optionally, we could also set d.head_addr and d.target_val from other sources if needed.
     delhook.update(&tid, &d);
     return 0;
+}
 
 int on_delete_return(struct pt_regs *ctx) {
     u32 tid = bpf_get_current_pid_tgid();
