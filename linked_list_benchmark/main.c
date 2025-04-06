@@ -12,7 +12,7 @@ int random_range(int min, int max) {
 
 int main() {
     int num_initial = 1000000;
-    int duration = 100;
+    int duration = 300;
     int insert_percent = 34, search_percent = 33, delete_percent = 33;
 
     srand(time(NULL));
