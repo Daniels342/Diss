@@ -8,7 +8,6 @@
 typedef struct VerifOptimisedNode {
     int data;
     struct VerifOptimisedNode* next;
-    struct VerifOptimisedNode* prev; // Added for doubly linked list support
     struct VerifOptimisedNode* next_free;
 } VerifOptimisedNode __attribute__((aligned(CACHE_LINE_SIZE)));
 

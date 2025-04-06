@@ -8,7 +8,6 @@
 typedef struct OptimisedNode {
     int data;
     struct OptimisedNode* next;
-    struct OptimisedNode* prev;  // Added for doubly linked list support.
     struct OptimisedNode* next_free;
 } OptimisedNode __attribute__((aligned(CACHE_LINE_SIZE)));
 

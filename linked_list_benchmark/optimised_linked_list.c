@@ -14,6 +14,9 @@ OptimisedChunk* pool_chunks = NULL;
 #define likely(x)   __builtin_expect((x), 1)
 #define unlikely(x) __builtin_expect((x), 0)
 
+/* Empty marker function */
+static inline void insert_exit_marker() { }
+
 void optimised_allocate_pool_chunk() {
     OptimisedNode* new_chunk = NULL;
     if (posix_memalign((void**)&new_chunk, CACHE_LINE_SIZE, NODE_CHUNK_SIZE * sizeof(OptimisedNode)) != 0) {
@@ -60,54 +63,34 @@ void optimised_insert(OptimisedNode** head, int data) {
     node_pool = node_pool->next_free;
     new_node->data = data;
     new_node->next = *head;
-    new_node->prev = NULL;
-    if (*head != NULL) {
-        (*head)->prev = new_node;
-    }
     *head = new_node;
+    insert_exit_marker();
 }
 
 void optimised_delete(OptimisedNode** head, int data) {
-    if (*head == NULL)
-        return;
-
-    if ((*head)->data == data) {
+    if (*head != NULL && (*head)->data == data) {
         OptimisedNode* temp = *head;
         _mm_stream_si64((long long*)head, (long long)(*head)->next);
-        *head = (*head)->next;
-        if (*head != NULL)
-            (*head)->prev = NULL;
         optimised_return_node(temp);
         return;
     }
-    
-    OptimisedNode* current = *head;
-    // Traverse the list, using prefetching and unrolling where possible.
-    while (current) {
-        if (current->data == data) {
-            // Remove the node from the list.
-            if (current->prev)
-                current->prev->next = current->next;
-            if (current->next)
-                current->next->prev = current->prev;
-            optimised_return_node(current);
+    OptimisedNode* prev = *head;
+    OptimisedNode* temp = (*head != NULL) ? (*head)->next : NULL;
+    while (temp != NULL) {
+        if (temp->data == data) {
+            prev->next = temp->next;
+            optimised_return_node(temp);
             return;
         }
-        // Prefetch the next nodes to improve cache behavior.
-        if (current->next) {
-            __builtin_prefetch(current->next, 0, 3);
-            if (current->next->next) {
-                __builtin_prefetch(current->next->next, 0, 3);
-            }
-        }
-        current = current->next;
+        prev = temp;
+        temp = temp->next;
     }
 }
 
 void optimised_show(OptimisedNode* head) {
     OptimisedNode* current = head;
     while (current != NULL) {
-        printf("%d <-> ", current->data);
+        printf("%d -> ", current->data);
         current = current->next;
     }
     printf("NULL\n");
@@ -115,21 +98,10 @@ void optimised_show(OptimisedNode* head) {
 
 OptimisedNode* optimised_search(OptimisedNode* head, int data) {
     OptimisedNode* current = head;
-    while (current && current->next) {
-        __builtin_prefetch(current->next, 0, 3);
-        if (current->next->next) {
-            __builtin_prefetch(current->next->next, 0, 3);
-        }
-        if (likely(current->data == data)) {
+    while (likely(current != NULL)) {
+        if (current->data == data)
             return current;
-        }
-        if (likely(current->next->data == data)) {
-            return current->next;
-        }
-        current = current->next->next;
-    }
-    if (current && current->data == data) {
-        return current;
+        current = current->next;
     }
     return NULL;
 }
