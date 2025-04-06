@@ -80,16 +80,6 @@ int on_delete_hook(struct pt_regs *ctx) {
     // Optionally, we could also set d.head_addr and d.target_val from other sources if needed.
     delhook.update(&tid, &d);
     return 0;
-}
-int probe_deletion_instrumentation(struct pt_regs *ctx) {
-    u32 tid = bpf_get_current_pid_tgid();
-    struct del_info_t info = {};
-    info.pred = PT_REGS_PARM1(ctx);
-    info.target = PT_REGS_PARM2(ctx);
-    info.succ = PT_REGS_PARM3(ctx);
-    delinfo.update(&tid, &info);
-    return 0;
-}
 
 int on_delete_return(struct pt_regs *ctx) {
     u32 tid = bpf_get_current_pid_tgid();
