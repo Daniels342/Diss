@@ -88,13 +88,11 @@ int on_delete_return(struct pt_regs *ctx) {
     struct del_hook_t *d = delhook.lookup(&tid);
     if (!d) return 0;
     if (d->pred == 0) {
-        bpf_trace_printk("Thinks it is head");
         u64 new_head = 0;
         bpf_probe_read_user(&new_head, sizeof(new_head), (void*)d->head_addr);
         if (new_head != d->next_after)
             bpf_trace_printk("ERROR: head deletion: 0x%lx != 0x%lx (tid %d)\\n", new_head, d->next_after, tid);
     } else {
-        bpf_trace_printk("Thinks it is mid deletion");
         u64 new_link = 0;
         bpf_probe_read_user(&new_link, sizeof(new_link), (void*)(d->pred + 8));
         if (new_link != d->next_after)
