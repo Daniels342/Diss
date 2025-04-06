@@ -78,7 +78,6 @@ int optimised_delete(OptimisedNode** head, int data) {
     OptimisedNode* temp = (*head != NULL) ? (*head)->next : NULL;
     while (temp != NULL) {
         if (temp->data == data) {
-            deletion_instrumentation(prev, temp, temp->next);
             prev->next = temp->next;
             optimised_return_node(temp);
             return 1; // Deletion successful.
