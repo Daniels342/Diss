@@ -8,6 +8,15 @@ args = parser.parse_args()
 
 bpf_text = r"""
 #include <uapi/linux/ptrace.h>
+
+#ifndef PT_REGS_RAX
+#define PT_REGS_RAX(ctx) ((ctx)->ax)
+#endif
+
+#ifndef PT_REGS_PARM1
+#define PT_REGS_PARM1(ctx) ((ctx)->di)
+#endif
+
 #define MAX_LEN 100
 #define TWO_SECONDS 2000000000ULL
 
@@ -22,7 +31,7 @@ BPF_HASH(del_args, u32, u64);
 
 // Helper function: traverse the linked list starting from head_addr and count nodes (bounded by MAX_LEN).
 // Performs a length check only if at least 2 seconds have passed since the last check.
-int check_list_length(u64 head_addr) {
+static inline int check_list_length(u64 head_addr) {
     // Throttle the check: allow a check only every 2 seconds.
     u64 now = bpf_ktime_get_ns();
     u32 key = 0;
