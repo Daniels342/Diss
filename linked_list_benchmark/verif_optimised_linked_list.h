@@ -17,7 +17,7 @@ typedef struct VerifOptimisedChunk {
 } VerifOptimisedChunk;
 
 void verif_optimised_insert(VerifOptimisedNode** head, int data);
-void verif_optimised_delete(VerifOptimisedNode** head, int data);
+int verif_optimised_delete(VerifOptimisedNode** head, int data);
 void verif_optimised_show(VerifOptimisedNode* head);
 VerifOptimisedNode* verif_optimised_search(VerifOptimisedNode* head, int data);
 void verif_optimised_free_all();

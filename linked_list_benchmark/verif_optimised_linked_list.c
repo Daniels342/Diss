@@ -72,7 +72,7 @@ void verif_optimised_delete(VerifOptimisedNode** head, int data) {
         VerifOptimisedNode* temp = *head;
         _mm_stream_si64((long long*)head, (long long)(*head)->next);
         verif_optimised_return_node(temp);
-        return;
+        return 1; // Deletion successful.
     }
     VerifOptimisedNode* prev = *head;
     VerifOptimisedNode* temp = (*head != NULL) ? (*head)->next : NULL;
@@ -80,11 +80,12 @@ void verif_optimised_delete(VerifOptimisedNode** head, int data) {
         if (temp->data == data) {
             prev->next = temp->next;
             verif_optimised_return_node(temp);
-            return;
+            return 1; // Deletion successful.
         }
         prev = temp;
         temp = temp->next;
     }
+    return 0; // Node not found.
 }
 
 void verif_optimised_show(VerifOptimisedNode* head) {

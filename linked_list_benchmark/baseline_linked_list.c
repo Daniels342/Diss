@@ -16,7 +16,7 @@ void baseline_insert(BaselineNode** head, int data) {
 
 void baseline_delete(BaselineNode** head, int data) {
     if (*head == NULL)
-        return;
+        return 0; // List is empty.
     
     BaselineNode* current = *head;
     BaselineNode* prev = NULL;
@@ -29,11 +29,12 @@ void baseline_delete(BaselineNode** head, int data) {
                 prev->next = current->next;
             
             free(current);
-            return;
+            return 1; // Deletion successful.
         }
         prev = current;
         current = current->next;
     }
+    return 0; // Node not found.
 }
 
 void baseline_show(BaselineNode* head) {

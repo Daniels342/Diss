@@ -17,7 +17,7 @@ typedef struct OptimisedChunk {
 } OptimisedChunk;
 
 void optimised_insert(OptimisedNode** head, int data);
-void optimised_delete(OptimisedNode** head, int data);
+int optimised_delete(OptimisedNode** head, int data);
 void optimised_show(OptimisedNode* head);
 OptimisedNode* optimised_search(OptimisedNode* head, int data);
 void optimised_free_all();

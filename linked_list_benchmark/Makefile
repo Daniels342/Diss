@@ -4,12 +4,6 @@
 CC = gcc
 CFLAGS = -O3 -march=native -Wall -g
 
-# Uncomment and use these flags for PGO if desired:
-# For the initial run to generate profiling data:
-# CFLAGS_PGO_GEN = -O3 -march=native -Wall -g -fprofile-generate
-# For the final build using the profiling data:
-# CFLAGS_PGO_USE = -O3 -march=native -Wall -g -fprofile-use
-
 # Default target builds all three versions.
 all: baseline optimised verif
 

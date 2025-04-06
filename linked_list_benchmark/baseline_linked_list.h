@@ -7,7 +7,7 @@ typedef struct BaselineNode {
 } BaselineNode;
 
 void baseline_insert(BaselineNode** head, int data);
-void baseline_delete(BaselineNode** head, int data);
+int baseline_delete(BaselineNode** head, int data);
 void baseline_show(BaselineNode* head);
 BaselineNode* baseline_search(BaselineNode* head, int data);
 void baseline_free_all(BaselineNode** head);
