@@ -38,6 +38,7 @@ void run_workload(Node** head, int insert_percentage, int search_percentage, int
                 diff = (op_end.tv_sec - op_start.tv_sec) + (op_end.tv_nsec - op_start.tv_nsec) / 1e9;
                 insert_time += diff;
                 insert_count++;
+                total_operations++;
                 current_length++;  // update counter
             }
         } else if (operation_choice < insert_percentage + search_percentage) {
@@ -47,6 +48,7 @@ void run_workload(Node** head, int insert_percentage, int search_percentage, int
             diff = (op_end.tv_sec - op_start.tv_sec) + (op_end.tv_nsec - op_start.tv_nsec) / 1e9;
             search_time += diff;
             search_count++;
+            total_operations++;
         } else if (operation_choice < insert_percentage + search_percentage + delete_percentage) {
             clock_gettime(CLOCK_MONOTONIC, &op_start);
             // If deletion succeeds, update current_length.
@@ -56,6 +58,7 @@ void run_workload(Node** head, int insert_percentage, int search_percentage, int
                 delete_time += diff;
                 delete_count++;
                 current_length--;
+                total_operations++;
             }
             else {
             // If deletion fails, just measure the time.
@@ -63,7 +66,6 @@ void run_workload(Node** head, int insert_percentage, int search_percentage, int
             }
 
         }
-        total_operations++;
         // Update elapsed time.
         clock_gettime(CLOCK_MONOTONIC, &current_time);
         elapsed_sec = (current_time.tv_sec - start_time.tv_sec) +
