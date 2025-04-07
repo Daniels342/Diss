@@ -304,5 +304,5 @@ for k, v in probe_stats.items():
     count = v.count
     avg = total_time // count if count > 0 else 0
     name = probe_names.get(idx, "unknown")
-    print("Probe %-20s: count = %d, total time = %llu ns, average = %llu ns" %
-          (name, count, total_time, avg))
+    print("Probe %-20s: count = %d, total time = %d ns, average = %d ns" %
+            (name, count, total_time, avg))
