@@ -19,15 +19,13 @@ void run_workload(Node** head, int insert_percentage, int search_percentage, int
     // Start deletions at a different value so they don't always target the head.
     int delete_value = 251;  
     
-    // Get the starting time using time(NULL)
-    time_t start_time = time(NULL);
-    time_t current_time = start_time;
-
-    struct timespec op_start, op_end;
+    // Use CLOCK_PROCESS_CPUTIME_ID to measure CPU time.
+    struct timespec start_ts, current_ts, op_start, op_end;
+    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start_ts);
+    double elapsed_cpu = 0.0;
     double diff = 0.0;
-
-    // Loop until the elapsed time (in seconds) is at least duration_seconds.
-    while ((current_time - start_time) < duration_seconds) {
+    
+    while (elapsed_cpu < duration_seconds) {
         // --- Insert Operation ---
         clock_gettime(CLOCK_MONOTONIC, &op_start);
         list_insert(head, insert_value);
@@ -36,13 +34,13 @@ void run_workload(Node** head, int insert_percentage, int search_percentage, int
         insert_time += diff;
         insert_count++;
         total_operations++;
-
+    
         // Cycle the insert_value between 1 and 500.
         insert_value++;
         if (insert_value > 500) {
             insert_value = 1;
         }
-
+    
         // --- Delete Operation ---
         clock_gettime(CLOCK_MONOTONIC, &op_start);
         int result = list_delete(head, delete_value);
@@ -53,13 +51,13 @@ void run_workload(Node** head, int insert_percentage, int search_percentage, int
             delete_count++;
         }
         total_operations++;
-
+    
         // Cycle the delete_value between 1 and 500.
         delete_value++;
         if (delete_value > 500) {
             delete_value = 1;
         }
-
+    
         // --- Random Search Operation ---
         int random_val = random_in_range(1, 10000);
         clock_gettime(CLOCK_MONOTONIC, &op_start);
@@ -69,11 +67,13 @@ void run_workload(Node** head, int insert_percentage, int search_percentage, int
         search_time += diff;
         search_count++;
         total_operations++;
-
-        // Update current time using time(NULL)
-        current_time = time(NULL);
+    
+        // Update elapsed CPU time using CLOCK_PROCESS_CPUTIME_ID.
+        clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &current_ts);
+        elapsed_cpu = (current_ts.tv_sec - start_ts.tv_sec) +
+                      (current_ts.tv_nsec - start_ts.tv_nsec) / 1e9;
     }
-
+    
     printf("Total Operations: %d\n", total_operations);
     printf("Insertions: %d, Time spent: %.4f seconds\n", insert_count, insert_time);
     printf("Searches: %d, Time spent: %.4f seconds\n", search_count, search_time);
