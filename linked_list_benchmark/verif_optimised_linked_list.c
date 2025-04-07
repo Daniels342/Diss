@@ -19,7 +19,9 @@ static inline void insert_exit_marker() { }
 
 __attribute__((noinline, used))
 void deletion_instrumentation(void *pred, void *target, void *succ) {
+    fprintf(stderr, "deletion_instrumentation called\n");
 }
+
 
 void verif_optimised_allocate_pool_chunk() {
     VerifOptimisedNode* new_chunk = NULL;
