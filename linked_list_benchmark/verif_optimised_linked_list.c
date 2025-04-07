@@ -17,9 +17,7 @@ VerifOptimisedChunk* verif_pool_chunks = NULL;
 /* Empty marker function */
 static inline void insert_exit_marker() { }
 
-__attribute__((noinline, used))
-void deletion_instrumentation(void *pred, void *target, void *succ) {
-    fprintf(stderr, "deletion_instrumentation called\n");
+static inline void deletion_instrumentation(void *pred, void *target, void *succ) {
 }
 
 
@@ -62,7 +60,6 @@ void verif_optimised_free_all() {
 }
 
 void verif_optimised_insert(VerifOptimisedNode** head, int data) {
-    fprintf(stderr, "insert_instrumentation called\n");
     if (verif_node_pool == NULL) {
         verif_optimised_allocate_pool_chunk();
     }
