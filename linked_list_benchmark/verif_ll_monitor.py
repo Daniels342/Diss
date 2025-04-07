@@ -24,30 +24,10 @@ BPF_HASH(entryinfo, u32, struct entry_t);
 BPF_HASH(delhook, u32, struct del_hook_t);
 
 int on_insert_entry(struct pt_regs *ctx) {
-    u32 tid = bpf_get_current_pid_tgid();
-    struct entry_t val = {};
-    val.head_addr = PT_REGS_PARM1(ctx);
-    val.inserted_val = PT_REGS_PARM2(ctx);
-    u64 old_head = 0;
-    bpf_probe_read_user(&old_head, sizeof(old_head), (void*)val.head_addr);
-    val.old_head = old_head;
-    entryinfo.update(&tid, &val);
     return 0;
 }
 int on_insert_return(struct pt_regs *ctx) {
-    u32 tid = bpf_get_current_pid_tgid();
-    struct entry_t *st = entryinfo.lookup(&tid);
-    if (!st) return 0;
-    u64 new_head = 0;
-    bpf_probe_read_user(&new_head, sizeof(new_head), (void*)st->head_addr);
-    if (!new_head) { entryinfo.delete(&tid); return 0; }
-    int new_val = 0;
-    bpf_probe_read_user(&new_val, sizeof(new_val), (void*)new_head);
-    if (new_val != st->inserted_val) { entryinfo.delete(&tid); return 0; }
-    u64 new_next = 0;
-    bpf_probe_read_user(&new_next, sizeof(new_next), (void*)(new_head + 8));
-    if (new_next != st->old_head) { entryinfo.delete(&tid); return 0; }
-    entryinfo.delete(&tid);
+
     return 0;
 }
 int on_delete_entry(struct pt_regs *ctx) {
