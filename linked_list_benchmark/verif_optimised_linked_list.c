@@ -18,8 +18,8 @@ VerifOptimisedChunk* verif_pool_chunks = NULL;
 static inline void insert_exit_marker() { }
 
 void deletion_instrumentation(void *pred, void *target, void *succ) {
-    return
 }
+
 void verif_optimised_allocate_pool_chunk() {
     VerifOptimisedNode* new_chunk = NULL;
     if (posix_memalign((void**)&new_chunk, CACHE_LINE_SIZE, NODE_CHUNK_SIZE * sizeof(VerifOptimisedNode)) != 0) {
