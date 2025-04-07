@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <sys/time.h>
+#include <sys/resource.h>
 #include "workload.h"
 #include "list_interface.h"
 
@@ -19,13 +21,22 @@ void run_workload(Node** head, int insert_percentage, int search_percentage, int
     // Start deletions at a different value so they don't always target the head.
     int delete_value = 251;  
     
-    // Use CLOCK_PROCESS_CPUTIME_ID to measure CPU time.
-    struct timespec start_ts, current_ts, op_start, op_end;
-    clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start_ts);
-    double elapsed_cpu = 0.0;
+    // Variables to measure each operation's time.
+    struct timespec op_start, op_end;
     double diff = 0.0;
     
-    while (elapsed_cpu < duration_seconds) {
+    // Variables to check the process's user CPU time.
+    struct rusage usage;
+    double user_time = 0.0;
+    
+    // Loop until the process has consumed at least duration_seconds of user CPU time.
+    while (1) {
+        // Update user CPU time.
+        getrusage(RUSAGE_SELF, &usage);
+        user_time = usage.ru_utime.tv_sec + usage.ru_utime.tv_usec / 1e6;
+        if (user_time >= duration_seconds)
+            break;
+        
         // --- Insert Operation ---
         clock_gettime(CLOCK_MONOTONIC, &op_start);
         list_insert(head, insert_value);
@@ -34,13 +45,12 @@ void run_workload(Node** head, int insert_percentage, int search_percentage, int
         insert_time += diff;
         insert_count++;
         total_operations++;
-    
+        
         // Cycle the insert_value between 1 and 500.
         insert_value++;
-        if (insert_value > 500) {
+        if (insert_value > 500)
             insert_value = 1;
-        }
-    
+        
         // --- Delete Operation ---
         clock_gettime(CLOCK_MONOTONIC, &op_start);
         int result = list_delete(head, delete_value);
@@ -51,13 +61,12 @@ void run_workload(Node** head, int insert_percentage, int search_percentage, int
             delete_count++;
         }
         total_operations++;
-    
+        
         // Cycle the delete_value between 1 and 500.
         delete_value++;
-        if (delete_value > 500) {
+        if (delete_value > 500)
             delete_value = 1;
-        }
-    
+        
         // --- Random Search Operation ---
         int random_val = random_in_range(1, 10000);
         clock_gettime(CLOCK_MONOTONIC, &op_start);
@@ -67,11 +76,6 @@ void run_workload(Node** head, int insert_percentage, int search_percentage, int
         search_time += diff;
         search_count++;
         total_operations++;
-    
-        // Update elapsed CPU time using CLOCK_PROCESS_CPUTIME_ID.
-        clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &current_ts);
-        elapsed_cpu = (current_ts.tv_sec - start_ts.tv_sec) +
-                      (current_ts.tv_nsec - start_ts.tv_nsec) / 1e9;
     }
     
     printf("Total Operations: %d\n", total_operations);
