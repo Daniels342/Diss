@@ -62,6 +62,7 @@ void verif_optimised_free_all() {
 }
 
 void verif_optimised_insert(VerifOptimisedNode** head, int data) {
+    fprintf(stderr, "insert_instrumentation called\n");
     if (verif_node_pool == NULL) {
         verif_optimised_allocate_pool_chunk();
     }
