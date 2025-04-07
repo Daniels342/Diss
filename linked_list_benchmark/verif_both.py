@@ -4,7 +4,7 @@ import argparse, time, sys
 import ctypes as ct
 
 parser = argparse.ArgumentParser(
-    description="Combined runtime verification of linked list properties and length (throttled)"
+    description="Combined runtime verification of linked list properties and length (throttled) with aggregated eBPF probe timing"
 )
 parser.add_argument("binary", help="Path to the target binary (e.g., ./main_verif_optimised)")
 args = parser.parse_args()
@@ -46,22 +46,26 @@ struct probe_stat {
     u64 count;
 };
 
-// --- Maps for timing aggregation ---
+// --- Map for timing aggregation ---
 // Create an array with 5 elements (one per probe).
 BPF_ARRAY(probe_stats, struct probe_stat, 5);
 
-// --- Macros for probe timing ---
-#define BEGIN_PROBE() u64 __start_ns = bpf_ktime_get_ns();
-#define END_PROBE(idx) { \
-    u64 __end_ns = bpf_ktime_get_ns(); \
-    u64 __delta = __end_ns - __start_ns; \
-    u32 __key = idx; \
-    struct probe_stat *ps = probe_stats.lookup(&__key); \
-    if (ps) { \
-        __sync_fetch_and_add(&ps->total_time, __delta); \
-        __sync_fetch_and_add(&ps->count, 1); \
-    } \
+// --- Inline function to record probe time ---
+// This function is inlined and does the map lookup.
+static inline void record_probe(u32 idx, u64 start_ns) {
+    u64 end_ns = bpf_ktime_get_ns();
+    u64 delta = end_ns - start_ns;
+    u32 key = idx;
+    struct probe_stat *ps = probe_stats.lookup(&key);
+    if (ps) {
+        __sync_fetch_and_add(&ps->total_time, delta);
+        __sync_fetch_and_add(&ps->count, 1);
+    }
 }
+
+// --- Macros for probe timing ---
+#define BEGIN_PROBE() u64 __probe_start = bpf_ktime_get_ns();
+#define END_PROBE(idx) record_probe(idx, __probe_start)
 
 // --- Maps for length checking ---
 BPF_ARRAY(expected_len, int, 1);
