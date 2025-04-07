@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from bcc import BPF
-import argparse, time
+import argparse, time, sys
+import ctypes as ct
 
 parser = argparse.ArgumentParser(
     description="Combined runtime verification of linked list properties and length (throttled)"
@@ -31,6 +32,36 @@ bpf_text = r"""
 // --- Configuration ---
 #define MAX_LEN 1000
 #define TWO_SECONDS 2000000000ULL
+
+// --- Probe indices ---
+#define IDX_INSERT_ENTRY 0
+#define IDX_INSERT_RETURN 1
+#define IDX_DELETE_ENTRY 2
+#define IDX_DELETE_HOOK 3
+#define IDX_DELETE_RETURN 4
+
+// --- Structure to aggregate probe timings ---
+struct probe_stat {
+    u64 total_time;
+    u64 count;
+};
+
+// --- Maps for timing aggregation ---
+// Create an array with 5 elements (one per probe).
+BPF_ARRAY(probe_stats, struct probe_stat, 5);
+
+// --- Macros for probe timing ---
+#define BEGIN_PROBE() u64 __start_ns = bpf_ktime_get_ns();
+#define END_PROBE(idx) { \
+    u64 __end_ns = bpf_ktime_get_ns(); \
+    u64 __delta = __end_ns - __start_ns; \
+    u32 __key = idx; \
+    struct probe_stat *ps = probe_stats.lookup(&__key); \
+    if (ps) { \
+        __sync_fetch_and_add(&ps->total_time, __delta); \
+        __sync_fetch_and_add(&ps->count, 1); \
+    } \
+}
 
 // --- Maps for length checking ---
 BPF_ARRAY(expected_len, int, 1);
@@ -90,9 +121,8 @@ static inline int check_list_length(u64 head_addr) {
 // Insert Probes (combined property and length checking)
 // ====================================================
 
-// Uprobe for insert: record both the head pointer (for length check)
-// and property details (head pointer, inserted value, and old head value).
 int on_insert_entry(struct pt_regs *ctx) {
+    BEGIN_PROBE();
     u32 tid = bpf_get_current_pid_tgid();
     u64 head_addr = PT_REGS_PARM1(ctx);
     // For length checking:
@@ -105,13 +135,13 @@ int on_insert_entry(struct pt_regs *ctx) {
     bpf_probe_read_user(&old_head, sizeof(old_head), (void*)head_addr);
     val.old_head = old_head;
     entryinfo.update(&tid, &val);
+    END_PROBE(IDX_INSERT_ENTRY);
     return 0;
 }
 
-// Uretprobe for insert: perform property verification and update expected length.
 int on_insert_return(struct pt_regs *ctx) {
+    BEGIN_PROBE();
     u32 tid = bpf_get_current_pid_tgid();
-
     // --- Property checking ---
     struct entry_t *st = entryinfo.lookup(&tid);
     if (st) {
@@ -149,6 +179,7 @@ int on_insert_return(struct pt_regs *ctx) {
         check_list_length(*phead);
         ins_args.delete(&tid);
     }
+    END_PROBE(IDX_INSERT_RETURN);
     return 0;
 }
 
@@ -156,9 +187,8 @@ int on_insert_return(struct pt_regs *ctx) {
 // Delete Probes (combined property and length checking)
 // ====================================================
 
-// Uprobe for delete: record the head pointer for length check and, for property checking,
-// capture deletion parameters.
 int on_delete_entry(struct pt_regs *ctx) {
+    BEGIN_PROBE();
     u32 tid = bpf_get_current_pid_tgid();
     // For property checking:
     struct del_hook_t d = {};
@@ -177,23 +207,24 @@ int on_delete_entry(struct pt_regs *ctx) {
     }
     // For length checking:
     del_args.update(&tid, &d.head_addr);
+    END_PROBE(IDX_DELETE_ENTRY);
     return 0;
 }
 
-// Uprobe for deletion instrumentation (dummy hook): update deletion properties.
 int on_delete_hook(struct pt_regs *ctx) {
+    BEGIN_PROBE();
     u32 tid = bpf_get_current_pid_tgid();
     struct del_hook_t d = {};
     d.pred = PT_REGS_PARM1(ctx);
     d.next_after = PT_REGS_PARM3(ctx);
     delhook.update(&tid, &d);
+    END_PROBE(IDX_DELETE_HOOK);
     return 0;
 }
 
-// Uretprobe for delete: perform property checks and update expected length if delete was successful.
 int on_delete_return(struct pt_regs *ctx) {
+    BEGIN_PROBE();
     u32 tid = bpf_get_current_pid_tgid();
-
     // --- Property checking ---
     struct del_hook_t *d = delhook.lookup(&tid);
     if (d) {
@@ -225,6 +256,7 @@ int on_delete_return(struct pt_regs *ctx) {
         check_list_length(*phead);
     }
     del_args.delete(&tid);
+    END_PROBE(IDX_DELETE_RETURN);
     return 0;
 }
 """
@@ -239,13 +271,34 @@ b.attach_uprobe(name=args.binary, sym="verif_optimised_delete", fn_name="on_dele
 b.attach_uprobe(name=args.binary, sym="deletion_instrumentation", fn_name="on_delete_hook")
 b.attach_uretprobe(name=args.binary, sym="verif_optimised_delete", fn_name="on_delete_return")
 
-print("Probes attached. Monitoring linked list properties and length (throttled to one check per 2 seconds). Ctrl+C to exit.")
+print("Probes attached. Monitoring linked list properties and length (throttled to one check per 2 seconds).")
+print("Press Ctrl+C to stop and print aggregated probe timings.")
 
-# Read and print trace messages.
-while True:
-    try:
+try:
+    while True:
         (task, pid, cpu, flags, ts, msg) = b.trace_fields()
         print("%s" % (msg))
-    except KeyboardInterrupt:
-        print("Exiting...")
-        exit()
+except KeyboardInterrupt:
+    print("Exiting and printing aggregated probe timings...\n")
+
+# --- Print aggregated timings from the probe_stats map ---
+print("Aggregated probe timings:")
+probe_stats = b.get_table("probe_stats")
+
+# Define a mapping of index to human-readable names.
+probe_names = {
+    0: "on_insert_entry",
+    1: "on_insert_return",
+    2: "on_delete_entry",
+    3: "on_delete_hook",
+    4: "on_delete_return"
+}
+
+for k, v in probe_stats.items():
+    idx = int(k.value)
+    total_time = v.total_time
+    count = v.count
+    avg = total_time // count if count > 0 else 0
+    name = probe_names.get(idx, "unknown")
+    print("Probe %-20s: count = %d, total time = %llu ns, average = %llu ns" %
+          (name, count, total_time, avg))
