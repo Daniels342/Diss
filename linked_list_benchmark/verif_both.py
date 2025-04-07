@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 from bcc import BPF
 import argparse, time, sys
-import ctypes as ct
 
 parser = argparse.ArgumentParser(
-    description="Combined runtime verification of linked list properties and length (throttled) with aggregated eBPF probe timing"
+    description="Combined runtime verification with aggregated eBPF probe timing (total time only)"
 )
 parser.add_argument("binary", help="Path to the target binary (e.g., ./main_verif_optimised)")
 args = parser.parse_args()
@@ -40,10 +39,9 @@ bpf_text = r"""
 #define IDX_DELETE_HOOK 3
 #define IDX_DELETE_RETURN 4
 
-// --- Structure to aggregate probe timings ---
+// --- Structure to aggregate probe timings (total time only) ---
 struct probe_stat {
     u64 total_time;
-    u64 count;
 };
 
 // --- Map for timing aggregation ---
@@ -51,7 +49,6 @@ struct probe_stat {
 BPF_ARRAY(probe_stats, struct probe_stat, 5);
 
 // --- Inline function to record probe time ---
-// This function is inlined and does the map lookup.
 static inline void record_probe(u32 idx, u64 start_ns) {
     u64 end_ns = bpf_ktime_get_ns();
     u64 delta = end_ns - start_ns;
@@ -59,7 +56,6 @@ static inline void record_probe(u32 idx, u64 start_ns) {
     struct probe_stat *ps = probe_stats.lookup(&key);
     if (ps) {
         __sync_fetch_and_add(&ps->total_time, delta);
-        __sync_fetch_and_add(&ps->count, 1);
     }
 }
 
@@ -298,11 +294,14 @@ probe_names = {
     4: "on_delete_return"
 }
 
+combined_total = 0
 for k, v in probe_stats.items():
     idx = int(k.value)
     total_time = v.total_time
-    count = v.count
-    avg = total_time // count if count > 0 else 0
+    combined_total += total_time
     name = probe_names.get(idx, "unknown")
-    print("Probe %-20s: count = %d, total time = %d ns, average = %d ns" %
-            (name, count, total_time, avg))
+    print("Probe %-20s: total time = %d ns (%.6f seconds)" % (name, total_time, total_time/1e9))
+
+
+print("Combined total time for all probes: %d ns (%.6f seconds)" % (combined_total, combined_total/1e9))
+
