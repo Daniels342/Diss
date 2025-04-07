@@ -18,7 +18,7 @@ VerifOptimisedChunk* verif_pool_chunks = NULL;
 static inline void insert_exit_marker() { }
 
 void deletion_instrumentation(void *pred, void *target, void *succ) {
-    // This function is intentionally left blank.
+    return
 }
 void verif_optimised_allocate_pool_chunk() {
     VerifOptimisedNode* new_chunk = NULL;
