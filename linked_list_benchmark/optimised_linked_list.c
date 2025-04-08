@@ -14,9 +14,6 @@ OptimisedChunk* pool_chunks = NULL;
 #define likely(x)   __builtin_expect((x), 1)
 #define unlikely(x) __builtin_expect((x), 0)
 
-/* Empty marker function */
-static inline void insert_exit_marker() { }
-
 void optimised_allocate_pool_chunk() {
     OptimisedNode* new_chunk = NULL;
     if (posix_memalign((void**)&new_chunk, CACHE_LINE_SIZE, NODE_CHUNK_SIZE * sizeof(OptimisedNode)) != 0) {
@@ -38,6 +35,17 @@ void optimised_allocate_pool_chunk() {
     }
 }
 
+void optimised_insert(OptimisedNode** head, int data) {
+    if (node_pool == NULL) {
+        optimised_allocate_pool_chunk();
+    }
+    OptimisedNode* new_node = node_pool;
+    node_pool = node_pool->next_free;
+    new_node->data = data;
+    new_node->next = *head;
+    *head = new_node;
+}
+
 static inline void optimised_return_node(OptimisedNode* node) {
     node->next_free = node_pool;
     node_pool = node;
@@ -55,24 +63,13 @@ void optimised_free_all() {
     pool_chunks = NULL;
 }
 
-void optimised_insert(OptimisedNode** head, int data) {
-    if (node_pool == NULL) {
-        optimised_allocate_pool_chunk();
-    }
-    OptimisedNode* new_node = node_pool;
-    node_pool = node_pool->next_free;
-    new_node->data = data;
-    new_node->next = *head;
-    *head = new_node;
-    insert_exit_marker();
-}
 
 int optimised_delete(OptimisedNode** head, int data) {
     if (*head != NULL && (*head)->data == data) {
         OptimisedNode* temp = *head;
         _mm_stream_si64((long long*)head, (long long)(*head)->next);
         optimised_return_node(temp);
-        return 1; // Deletion successful.
+        return 1; 
     }
     OptimisedNode* prev = *head;
     OptimisedNode* temp = (*head != NULL) ? (*head)->next : NULL;
@@ -80,12 +77,12 @@ int optimised_delete(OptimisedNode** head, int data) {
         if (temp->data == data) {
             prev->next = temp->next;
             optimised_return_node(temp);
-            return 1; // Deletion successful.
+            return 1; 
         }
         prev = temp;
         temp = temp->next;
     }
-    return 0; // Node not found.
+    return 0;
 }
 
 void optimised_show(OptimisedNode* head) {
