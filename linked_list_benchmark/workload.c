@@ -51,31 +51,31 @@ void run_workload(Node** head, int insert_percentage, int search_percentage, int
         if (insert_value > 50000)
             insert_value = 1;
         
-        // --- Delete Operation ---
-        clock_gettime(CLOCK_MONOTONIC, &op_start);
-        int result = list_delete(head, delete_value);
-        clock_gettime(CLOCK_MONOTONIC, &op_end);
-        diff = (op_end.tv_sec - op_start.tv_sec) + (op_end.tv_nsec - op_start.tv_nsec) / 1e9;
-        if (result) { // Only count deletion if it succeeds.
-            delete_time += diff;
-            delete_count++;
-        }
-        total_operations++;
+        // // --- Delete Operation ---
+        // clock_gettime(CLOCK_MONOTONIC, &op_start);
+        // int result = list_delete(head, delete_value);
+        // clock_gettime(CLOCK_MONOTONIC, &op_end);
+        // diff = (op_end.tv_sec - op_start.tv_sec) + (op_end.tv_nsec - op_start.tv_nsec) / 1e9;
+        // if (result) { // Only count deletion if it succeeds.
+        //     delete_time += diff;
+        //     delete_count++;
+        // }
+        // total_operations++;
         
-        // Cycle the delete_value between 1 and 500.
-        delete_value++;
-        if (delete_value > 50000)
-            delete_value = 1;
+        // // Cycle the delete_value between 1 and 500.
+        // delete_value++;
+        // if (delete_value > 50000)
+        //     delete_value = 1;
         
         // --- Random Search Operation ---
-        int random_val = random_in_range(1, 10000);
-        clock_gettime(CLOCK_MONOTONIC, &op_start);
-        list_search(*head, random_val);
-        clock_gettime(CLOCK_MONOTONIC, &op_end);
-        diff = (op_end.tv_sec - op_start.tv_sec) + (op_end.tv_nsec - op_start.tv_nsec) / 1e9;
-        search_time += diff;
-        search_count++;
-        total_operations++;
+        // int random_val = random_in_range(1, 10000);
+        // clock_gettime(CLOCK_MONOTONIC, &op_start);
+        // list_search(*head, random_val);
+        // clock_gettime(CLOCK_MONOTONIC, &op_end);
+        // diff = (op_end.tv_sec - op_start.tv_sec) + (op_end.tv_nsec - op_start.tv_nsec) / 1e9;
+        // search_time += diff;
+        // search_count++;
+        // total_operations++;
     }
     
     printf("Total Operations: %d\n", total_operations);
