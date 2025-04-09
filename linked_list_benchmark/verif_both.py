@@ -145,12 +145,12 @@ int on_insert_return(struct pt_regs *ctx) {
     // --- Property checking ---
     struct entry_t *st = entryinfo.lookup(&tid);
     if (st) {
-        bpf_trace_printk("ERROR: Insert property: inserted value mismatch\\n");
         u64 new_head = 0;
         bpf_probe_read_user(&new_head, sizeof(new_head), (void*)st->head_addr);
         if (!new_head) {
             entryinfo.delete(&tid);
         } else {
+            bpf_trace_printk("ERROR: Insert property: inserted value mismatch\\n");
             int new_val = 0;
             bpf_probe_read_user(&new_val, sizeof(new_val), (void*)new_head);
             if (new_val != st->inserted_val) {
