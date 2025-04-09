@@ -93,9 +93,6 @@ static inline int check_list_length(u64 head_addr) {
     if (prev && (now - *prev < TWO_SECONDS)) {
         return 0; // Throttled: less than 2 seconds since last check.
     }
-    u64 new_ts = now;
-    last_check.update(&key, &new_ts);
-
     int count = 0;
     u64 curr = 0;
     bpf_probe_read_user(&curr, sizeof(curr), (void *)head_addr);
@@ -114,6 +111,8 @@ static inline int check_list_length(u64 head_addr) {
     if (exp && count != *exp) {
         bpf_trace_printk("ERROR: Linked list length mismatch! Expected %d, Found %d\\n", *exp, count);
     }
+    u64 new_ts = now;
+    last_check.update(&key, &new_ts);
     return 0;
 }
 
