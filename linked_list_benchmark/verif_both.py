@@ -93,6 +93,7 @@ static inline int check_list_length(u64 head_addr) {
     if (prev && (now - *prev < TWO_SECONDS)) {
         return 0; // Throttled: less than 2 seconds since last check.
     }
+            bpf_trace_printk(""Doing length check on head_addr: 0x%lx\\n"", head_addr);
     int count = 0;
     u64 curr = 0;
     bpf_probe_read_user(&curr, sizeof(curr), (void *)head_addr);
