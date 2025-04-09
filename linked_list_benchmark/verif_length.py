@@ -17,7 +17,7 @@ bpf_text = r"""
 #define PT_REGS_PARM1(ctx) ((ctx)->di)
 #endif
 
-#define MAX_LEN 100000
+#define MAX_LEN 50000
 #define TWO_SECONDS 15000000000ULL
 
 // --- Timing instrumentation ---
