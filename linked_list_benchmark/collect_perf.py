@@ -8,7 +8,7 @@ import argparse
 def run_perf(binary):
     # Run "perf stat" on the given binary.
     # We capture stdout (from the binary) and stderr (from perf).
-    cmd = ["perf", "stat", "-e", "cache-misses,cycles,instructions,branch-misses", binary]
+    cmd = ["perf", "stat", "--inherit", "-e", "cache-misses,cycles,instructions,branch-misses,context-switches", binary]
     result = subprocess.run(cmd, capture_output=True, text=True)
     return result.stdout, result.stderr
 
@@ -29,7 +29,11 @@ def parse_perf_output(stderr):
         "cycles": r"^\s*([\d,]+)\s+cycles",
         "instructions": r"^\s*([\d,]+)\s+instructions",
         "branch_misses": r"^\s*([\d,]+)\s+branch-misses",
-        "elapsed": r"^\s*([\d\.]+)\s+seconds\s+time elapsed",
+        "context_switches": r"^\s*([\d,]+)\s+context-switches",
+        "cpu_migrations": r"^\s*([\d,]+)\s+cpu-migrations",
+        "stall_cycles_frontend": r"^\s*([\d,]+)\s+stall-cycles-frontend",
+        "stall_cycles_backend": r"^\s*([\d,]+)\s+stall-cycles-backend",
+        "elapsed": r"^\s*([\d\.]+)\s+seconds\s+time\s+elapsed",
         "user": r"^\s*([\d\.]+)\s+seconds\s+user",
         "sys": r"^\s*([\d\.]+)\s+seconds\s+sys",
     }
@@ -95,6 +99,7 @@ def main():
         "total_operations", "insertions", "insert_time", 
         "searches", "search_time", "deletions", "delete_time",
         "cache_misses", "cycles", "instructions", "branch_misses",
+        "context_switches",
         "elapsed", "user", "sys", "IPC"
     ]
 
