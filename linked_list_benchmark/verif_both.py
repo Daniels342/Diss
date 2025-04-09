@@ -144,8 +144,8 @@ int on_insert_return(struct pt_regs *ctx) {
     u32 tid = bpf_get_current_pid_tgid();
     // --- Property checking ---
     struct entry_t *st = entryinfo.lookup(&tid);
-    bpf_trace_printk("ERROR: Insert property: inserted value mismatch\\n");
     if (st) {
+        bpf_trace_printk("ERROR: Insert property: inserted value mismatch\\n");
         u64 new_head = 0;
         bpf_probe_read_user(&new_head, sizeof(new_head), (void*)st->head_addr);
         if (!new_head) {
