@@ -30,7 +30,7 @@ bpf_text = r"""
 
 // --- Configuration ---
 #define MAX_LEN 1000
-#define TWO_SECONDS 2000000000ULL
+#define TWO_SECONDS 1000000000ULL
 
 // --- Probe indices ---
 #define IDX_INSERT_ENTRY 0
@@ -150,7 +150,6 @@ int on_insert_return(struct pt_regs *ctx) {
         if (!new_head) {
             entryinfo.delete(&tid);
         } else {
-            bpf_trace_printk("ERROR: Insert property: inserted value mismatch\\n");
             int new_val = 0;
             bpf_probe_read_user(&new_val, sizeof(new_val), (void*)new_head);
             if (new_val != st->inserted_val) {
@@ -315,13 +314,16 @@ for k, v in probe_stats.items():
 print("Combined total time for all probes: %d ns (%.6f seconds)" % (combined_total, combined_total/1e9))
 
 # --- Write the results to a CSV file ---
-csv_file = "probe_timings.csv"
+csv_file = "combined_total_time_both1.csv"
 with open(csv_file, "w", newline="") as f:
-    fieldnames = ["probe_name", "total_time_ns", "total_time_seconds"]
+    # Define the column names.
+    fieldnames = ["combined_total_time_ns", "combined_total_time_seconds"]
     writer = csv.DictWriter(f, fieldnames=fieldnames)
-    
+
     writer.writeheader()
-    for row in rows:
-        writer.writerow(row)
-        
-print("Probe timings have been written to '%s'" % csv_file)
+    writer.writerow({
+        "combined_total_time_ns": combined_total,
+        "combined_total_time_seconds": combined_total / 1e9
+    })
+
+print("Combined total time has been written to '%s'" % csv_file)
