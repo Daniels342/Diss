@@ -14,10 +14,7 @@ VerifOptimisedChunk* verif_pool_chunks = NULL;
 #define likely(x)   __builtin_expect((x), 1)
 #define unlikely(x) __builtin_expect((x), 0)
 
-/* Empty marker function */
-static inline void insert_exit_marker() { }
-
-static inline void deletion_instrumentation(void *pred, void *target, void *succ) {
+void deletion_instrumentation(void *pred, void *target, void *succ) {
 }
 
 
@@ -68,7 +65,6 @@ void verif_optimised_insert(VerifOptimisedNode** head, int data) {
     new_node->data = data;
     new_node->next = *head;
     *head = new_node;
-    insert_exit_marker();
 }
 
 int verif_optimised_delete(VerifOptimisedNode** head, int data) {
@@ -76,7 +72,7 @@ int verif_optimised_delete(VerifOptimisedNode** head, int data) {
         VerifOptimisedNode* temp = *head;
         _mm_stream_si64((long long*)head, (long long)(*head)->next);
         verif_optimised_return_node(temp);
-        return 1; // Deletion successful.
+        return 1; 
     }
     VerifOptimisedNode* prev = *head;
     VerifOptimisedNode* temp = (*head != NULL) ? (*head)->next : NULL;
@@ -85,12 +81,12 @@ int verif_optimised_delete(VerifOptimisedNode** head, int data) {
             deletion_instrumentation(prev, temp, temp->next);
             prev->next = temp->next;
             verif_optimised_return_node(temp);
-            return 1; // Deletion successful.
+            return 1;
         }
         prev = temp;
         temp = temp->next;
     }
-    return 0; // Node not found.
+    return 0; 
 }
 
 void verif_optimised_show(VerifOptimisedNode* head) {
