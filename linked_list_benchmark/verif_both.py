@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from bcc import BPF
-import argparse, time, sys
+import argparse, time, sys, csv
 
 parser = argparse.ArgumentParser(
     description="Combined runtime verification with aggregated eBPF probe timing (total time only)"
@@ -295,13 +295,32 @@ probe_names = {
 }
 
 combined_total = 0
+# Prepare a list of dictionaries to write to CSV.
+rows = []
+
 for k, v in probe_stats.items():
     idx = int(k.value)
     total_time = v.total_time
     combined_total += total_time
     name = probe_names.get(idx, "unknown")
-    print("Probe %-20s: total time = %d ns (%.6f seconds)" % (name, total_time, total_time/1e9))
-
+    time_sec = total_time / 1e9
+    print("Probe %-20s: total time = %d ns (%.6f seconds)" % (name, total_time, time_sec))
+    rows.append({
+        "probe_name": name,
+        "total_time_ns": total_time,
+        "total_time_seconds": time_sec
+    })
 
 print("Combined total time for all probes: %d ns (%.6f seconds)" % (combined_total, combined_total/1e9))
 
+# --- Write the results to a CSV file ---
+csv_file = "probe_timings.csv"
+with open(csv_file, "w", newline="") as f:
+    fieldnames = ["probe_name", "total_time_ns", "total_time_seconds"]
+    writer = csv.DictWriter(f, fieldnames=fieldnames)
+    
+    writer.writeheader()
+    for row in rows:
+        writer.writerow(row)
+        
+print("Probe timings have been written to '%s'" % csv_file)
