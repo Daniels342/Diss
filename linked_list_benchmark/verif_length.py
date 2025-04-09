@@ -188,6 +188,7 @@ print("Aggregated probe timings:")
 probe_stats = b.get_table("probe_stats")
 combined_total = 0
 for k, v in probe_stats.items():
+    print("Probe %d: %d ns" % (k.value, v.total_time))
     combined_total += v.total_time;
 print("Combined total time for all probes: %d ns (%.6f seconds)" % (combined_total, combined_total/1e9))
 
