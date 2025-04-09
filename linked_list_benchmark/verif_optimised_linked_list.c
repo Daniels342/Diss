@@ -17,9 +17,8 @@ VerifOptimisedChunk* verif_pool_chunks = NULL;
 /* Empty marker function */
 static inline void insert_exit_marker() { }
 
-__attribute__((noinline, used))
+__attribute__((noinline, used, externally_visible))
 void deletion_instrumentation(void *pred, void *target, void *succ) {
-
 }
 
 
