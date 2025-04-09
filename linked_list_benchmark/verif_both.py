@@ -29,7 +29,7 @@ bpf_text = r"""
 #endif
 
 // --- Configuration ---
-#define MAX_LEN 1000
+#define MAX_LEN 50000
 #define TWO_SECONDS 15000000000ULL
 
 // --- Probe indices ---
