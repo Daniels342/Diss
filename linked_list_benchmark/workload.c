@@ -19,7 +19,7 @@ void run_workload(Node** head, int insert_percentage, int search_percentage, int
     // Set up cycling for insertion and deletion.
     int insert_value = 1;
     // Start deletions at a different value so they don't always target the head.
-    int delete_value = 251;  
+    int delete_value = 2510;  
     
     // Variables to measure each operation's time.
     struct timespec op_start, op_end;
@@ -48,7 +48,7 @@ void run_workload(Node** head, int insert_percentage, int search_percentage, int
         
         // Cycle the insert_value between 1 and 500.
         insert_value++;
-        if (insert_value > 500)
+        if (insert_value > 7000)
             insert_value = 1;
         
         // --- Delete Operation ---
@@ -64,7 +64,7 @@ void run_workload(Node** head, int insert_percentage, int search_percentage, int
         
         // Cycle the delete_value between 1 and 500.
         delete_value++;
-        if (delete_value > 500)
+        if (delete_value > 7000)
             delete_value = 1;
         
         // --- Random Search Operation ---

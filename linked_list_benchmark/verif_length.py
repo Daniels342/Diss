@@ -17,7 +17,7 @@ bpf_text = r"""
 #define PT_REGS_PARM1(ctx) ((ctx)->di)
 #endif
 
-#define MAX_LEN 1000
+#define MAX_LEN 10000
 #define TWO_SECONDS 15000000000ULL
 
 // --- Timing instrumentation ---
@@ -192,7 +192,7 @@ for k, v in probe_stats.items():
 print("Combined total time for all probes: %d ns (%.6f seconds)" % (combined_total, combined_total/1e9))
 
 # --- Write the combined total time to a CSV file ---
-csv_file = "combined_total_time_length15.csv"
+csv_file = "combined_total_time_length15Test.csv"
 with open(csv_file, "w", newline="") as f:
     fieldnames = ["combined_total_time_ns", "combined_total_time_seconds"]
     writer = csv.DictWriter(f, fieldnames=fieldnames)
