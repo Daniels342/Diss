@@ -274,9 +274,7 @@ print("Probes attached. Monitoring linked list properties and length (throttled 
 print("Press Ctrl+C to stop and print aggregated probe timings.")
 
 try:
-    while True:
-        (task, pid, cpu, flags, ts, msg) = b.trace_fields()
-        print("%s" % (msg))
+    time.sleep(1000) 
 except KeyboardInterrupt:
     print("Exiting and printing aggregated probe timings...\n")
 

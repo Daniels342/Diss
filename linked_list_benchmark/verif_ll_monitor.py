@@ -154,8 +154,7 @@ b.attach_uretprobe(name=args.binary, sym="verif_optimised_delete", fn_name="on_d
 
 print("Attached to verif_optimised_insert, verif_optimised_delete, and deletion_instrumentation hook. Ctrl+C to exit.")
 try:
-    while True:
-        time.sleep(5)
+    time.sleep(1000)
 except KeyboardInterrupt:
     print("Exiting...")
 
