@@ -30,7 +30,7 @@ bpf_text = r"""
 
 // --- Configuration ---
 #define MAX_LEN 1000
-#define TWO_SECONDS 1000000000ULL
+#define TWO_SECONDS 15000000000ULL
 
 // --- Probe indices ---
 #define IDX_INSERT_ENTRY 0
@@ -314,7 +314,7 @@ for k, v in probe_stats.items():
 print("Combined total time for all probes: %d ns (%.6f seconds)" % (combined_total, combined_total/1e9))
 
 # --- Write the results to a CSV file ---
-csv_file = "combined_total_time_both1.csv"
+csv_file = "combined_total_time_both15.csv"
 with open(csv_file, "w", newline="") as f:
     # Define the column names.
     fieldnames = ["combined_total_time_ns", "combined_total_time_seconds"]
