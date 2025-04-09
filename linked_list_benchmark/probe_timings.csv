@@ -1,0 +1,6 @@
+probe_name,total_time_ns,total_time_seconds
+on_insert_entry,1124314107,1.124314107
+on_insert_return,3575937938,3.575937938
+on_delete_entry,957601765,0.957601765
+on_delete_hook,546783023,0.546783023
+on_delete_return,1339394388,1.339394388
