@@ -108,7 +108,6 @@ static inline int check_list_length(u64 head_addr) {
         curr = next;
     }
     int *exp = expected_len.lookup(&key);
-    bpf_trace_printk("List length: %d\\n", count);
     if (exp && count != *exp) {
         bpf_trace_printk("ERROR: Linked list length mismatch! Expected %d, Found %d\\n", *exp, count);
     }
