@@ -48,7 +48,7 @@ void run_workload(Node** head, int insert_percentage, int search_percentage, int
         
         // Cycle the insert_value between 1 and 500.
         insert_value++;
-        if (insert_value > 15000)
+        if (insert_value > 50000)
             insert_value = 1;
         
         // --- Delete Operation ---
@@ -64,7 +64,7 @@ void run_workload(Node** head, int insert_percentage, int search_percentage, int
         
         // Cycle the delete_value between 1 and 500.
         delete_value++;
-        if (delete_value > 15000)
+        if (delete_value > 50000)
             delete_value = 1;
         
         // --- Random Search Operation ---
