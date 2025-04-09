@@ -8,28 +8,40 @@ import argparse
 def run_perf(binary):
     # Run "perf stat" on the given binary.
     # We capture stdout (from the binary) and stderr (from perf).
-    cmd = ["perf", "stat", "--inherit", "-e", "cache-misses,cycles,instructions,branch-misses", binary]
+    # The command now includes additional events: context-switches,
+    # cpu-migrations, stall-cycles-frontend, stall-cycles-backend.
+    events = ("cache-misses,cycles,instructions,branch-misses,"
+              "context-switches,cpu-migrations,stall-cycles-frontend,stall-cycles-backend")
+    cmd = ["perf", "stat", "--inherit", "-e", events, binary]
     result = subprocess.run(cmd, capture_output=True, text=True)
     return result.stdout, result.stderr
 
 def parse_perf_output(stderr):
     """
     Parse the stderr output from perf stat.
-    Expected lines:
-        55,848      cache-misses
-        30,278,943,377      cycles
-        7,324,503,196      instructions              #    0.24  insn per cycle
-        782,558      branch-misses
-        9.570737064 seconds time elapsed
-        9.478479000 seconds user
-        0.092024000 seconds sys
+    Expected lines (example):
+        55,848                   cache-misses
+        30,278,943,377           cycles
+        7,324,503,196            instructions              #    0.24  insn per cycle
+        782,558                  branch-misses
+        10,000                   context-switches
+        2,000                    cpu-migrations
+        500                      stall-cycles-frontend
+        300                      stall-cycles-backend
+        9.570737064 seconds      time elapsed
+        9.478479000 seconds      user
+        0.092024000 seconds      sys
     """
     patterns = {
         "cache_misses": r"^\s*([\d,]+)\s+cache-misses",
         "cycles": r"^\s*([\d,]+)\s+cycles",
         "instructions": r"^\s*([\d,]+)\s+instructions",
         "branch_misses": r"^\s*([\d,]+)\s+branch-misses",
-        "elapsed": r"^\s*([\d\.]+)\s+seconds\s+time elapsed",
+        "context_switches": r"^\s*([\d,]+)\s+context-switches",
+        "cpu_migrations": r"^\s*([\d,]+)\s+cpu-migrations",
+        "stall_cycles_frontend": r"^\s*([\d,]+)\s+stall-cycles-frontend",
+        "stall_cycles_backend": r"^\s*([\d,]+)\s+stall-cycles-backend",
+        "elapsed": r"^\s*([\d\.]+)\s+seconds\s+time\s+elapsed",
         "user": r"^\s*([\d\.]+)\s+seconds\s+user",
         "sys": r"^\s*([\d\.]+)\s+seconds\s+sys",
     }
@@ -90,11 +102,13 @@ def main():
         "verif": "./main_verif_optimised"
     }
 
+    # Added new fieldnames for the additional perf events.
     fieldnames = [
         "Version", "Run",
         "total_operations", "insertions", "insert_time", 
         "searches", "search_time", "deletions", "delete_time",
         "cache_misses", "cycles", "instructions", "branch_misses",
+        "context_switches", "cpu_migrations", "stall_cycles_frontend", "stall_cycles_backend",
         "elapsed", "user", "sys", "IPC"
     ]
 
