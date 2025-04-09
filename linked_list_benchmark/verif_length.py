@@ -83,6 +83,7 @@ static inline int check_list_length(u64 head_addr) {
 
     // Retrieve the expected length from the map.
     int *exp = expected_len.lookup(&key);
+    bpf_trace_printk("List length check: expected %d, found %d\\n", exp ? *exp : -1, count);
     if (exp && count != *exp) {
         bpf_trace_printk("ERROR: Linked list length mismatch! Expected %d, Found %d\\n", *exp, count);
     }
