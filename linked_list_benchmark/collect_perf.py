@@ -8,29 +8,21 @@ import argparse
 def run_perf(binary):
     # Run "perf stat" on the given binary.
     # We capture stdout (from the binary) and stderr (from perf).
-    # The command now includes additional events: context-switches,
-    # cpu-migrations, stall-cycles-frontend, stall-cycles-backend.
-    events = ("cache-misses,cycles,instructions,branch-misses,"
-              "context-switches,cpu-migrations,stall-cycles-frontend,stall-cycles-backend")
-    cmd = ["perf", "stat", "--inherit", "-e", events, binary]
+    cmd = ["perf", "stat", "--inherit", "-e", "cache-misses,cycles,instructions,branch-misses,context-switches,cpu-migrations,stall-cycles-frontend,stall-cycles-backend", binary]
     result = subprocess.run(cmd, capture_output=True, text=True)
     return result.stdout, result.stderr
 
 def parse_perf_output(stderr):
     """
     Parse the stderr output from perf stat.
-    Expected lines (example):
-        55,848                   cache-misses
-        30,278,943,377           cycles
-        7,324,503,196            instructions              #    0.24  insn per cycle
-        782,558                  branch-misses
-        10,000                   context-switches
-        2,000                    cpu-migrations
-        500                      stall-cycles-frontend
-        300                      stall-cycles-backend
-        9.570737064 seconds      time elapsed
-        9.478479000 seconds      user
-        0.092024000 seconds      sys
+    Expected lines:
+        55,848      cache-misses
+        30,278,943,377      cycles
+        7,324,503,196      instructions              #    0.24  insn per cycle
+        782,558      branch-misses
+        9.570737064 seconds time elapsed
+        9.478479000 seconds user
+        0.092024000 seconds sys
     """
     patterns = {
         "cache_misses": r"^\s*([\d,]+)\s+cache-misses",
@@ -102,7 +94,6 @@ def main():
         "verif": "./main_verif_optimised"
     }
 
-    # Added new fieldnames for the additional perf events.
     fieldnames = [
         "Version", "Run",
         "total_operations", "insertions", "insert_time", 
