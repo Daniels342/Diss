@@ -2,6 +2,12 @@
 #include <stdlib.h>
 #include "baseline_linked_list.h"
 
+__attribute__((noinline, used, externally_visible))
+void deletion_instrumentation(void *pred, void *target, void *succ) {
+    volatile int dummy = 0;
+    dummy++;
+}
+
 void baseline_insert(BaselineNode** head, int data) {
     BaselineNode* new_node = (BaselineNode*)malloc(sizeof(BaselineNode));
     if (!new_node) {
@@ -23,6 +29,7 @@ int baseline_delete(BaselineNode** head, int data) {
     
     while (current) {
         if (current->data == data) {
+            deletion_instrumentation(prev, current, current->next);
             if (prev == NULL)
                 *head = current->next; // Node to delete is the head.
             else

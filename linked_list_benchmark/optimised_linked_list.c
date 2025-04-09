@@ -14,6 +14,12 @@ OptimisedChunk* pool_chunks = NULL;
 #define likely(x)   __builtin_expect((x), 1)
 #define unlikely(x) __builtin_expect((x), 0)
 
+__attribute__((noinline, used, externally_visible))
+void deletion_instrumentation(void *pred, void *target, void *succ) {
+    volatile int dummy = 0;
+    dummy++;
+}
+
 void optimised_allocate_pool_chunk() {
     OptimisedNode* new_chunk = NULL;
     if (posix_memalign((void**)&new_chunk, CACHE_LINE_SIZE, NODE_CHUNK_SIZE * sizeof(OptimisedNode)) != 0) {
@@ -75,6 +81,7 @@ int optimised_delete(OptimisedNode** head, int data) {
     OptimisedNode* temp = (*head != NULL) ? (*head)->next : NULL;
     while (temp != NULL) {
         if (temp->data == data) {
+            deletion_instrumentation(prev, temp, temp->next);
             prev->next = temp->next;
             optimised_return_node(temp);
             return 1; 
