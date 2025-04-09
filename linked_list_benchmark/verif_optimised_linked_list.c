@@ -19,8 +19,8 @@ static inline void insert_exit_marker() { }
 
 __attribute__((noinline, used, externally_visible))
 void deletion_instrumentation(void *pred, void *target, void *succ) {
-    printf("Made it here\n");
     volatile int dummy = 0;
+    dummy++;
 }
 
 
