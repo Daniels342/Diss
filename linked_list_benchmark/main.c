@@ -12,7 +12,7 @@ int random_range(int min, int max) {
 
 int main() {
     int num_initial = 300;  // Pre-fill with 300 random values.
-    int duration = 60;     // Duration for the workload in seconds.
+    int duration = 10;     // Duration for the workload in seconds.
     int insert_percent = 40, search_percent = 40, delete_percent = 20;
 
     srand(time(NULL));
